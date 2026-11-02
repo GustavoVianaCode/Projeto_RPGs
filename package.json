@@ -1,0 +1,19 @@
+{
+  "name": "worldbuilding-platform",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "db:migrate": "pnpm --filter @proj/database db:migrate",
+    "db:generate": "pnpm --filter @proj/database db:generate",
+    "db:studio": "pnpm --filter @proj/database db:studio"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.1",
+    "turbo": "^2.4.2",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "pnpm@10.34.4"
+}

@@ -1,0 +1,147 @@
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pg_trgm, unaccent]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum GlobalRole {
+  USER
+  SUPERADMIN
+}
+
+enum WorldRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model User {
+  id             String                   @id @default(uuid())
+  email          String                   @unique
+  passwordHash   String?                  // Nullable para autenticação exclusiva via OAuth
+  name           String
+  avatarUrl      String?
+  isVerified     Boolean                  @default(false)
+  globalRole     GlobalRole               @default(USER)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  sessions       Session[]
+  oauthAccounts  OAuthAccount[]
+  memberships    WorldMember[]
+  createdInvites Invitation[]             @relation("InvitedBy")
+  verifyTokens   EmailVerificationToken[]
+  resetTokens    PasswordResetToken[]
+
+  @@map("users")
+}
+
+model Session {
+  id               String   @id @default(uuid())
+  userId           String
+  refreshTokenHash String   @unique // Hash SHA-256 do token rotacionado
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model OAuthAccount {
+  id                String   @id @default(uuid())
+  userId            String
+  provider          String   // "google", "discord", "github"
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("oauth_accounts")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model World {
+  id          String        @id @default(uuid())
+  name        String
+  slug        String        @unique
+  description String?
+  coverUrl    String?
+  deletedAt   DateTime?     // Soft-delete
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  members     WorldMember[]
+  invitations Invitation[]
+
+  @@index([deletedAt])
+  @@map("worlds")
+}
+
+model WorldMember {
+  id        String    @id @default(uuid())
+  worldId   String
+  userId    String
+  role      WorldRole @default(EDITOR)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  world     World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([worldId, userId])
+  @@index([userId])
+  @@map("world_members")
+}
+
+model Invitation {
+  id          String    @id @default(uuid())
+  worldId     String
+  email       String
+  role        WorldRole @default(EDITOR)
+  token       String    @unique
+  invitedById String
+  acceptedAt  DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  world       World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  invitedBy   User      @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@unique([worldId, email])
+  @@index([token])
+  @@map("invitations")
+}
