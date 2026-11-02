@@ -17,6 +17,58 @@ export interface WorldEditorProps {
   onStatusChange?: (status: ConnectionStatus) => void;
 }
 
+// ─── Toolbar Button ───────────────────────────────────────────────────────────
+interface ToolbarButtonProps {
+  onClick: () => void;
+  disabled?: boolean;
+  active?: boolean;
+  activeClass?: string;
+  children: React.ReactNode;
+  title?: string;
+}
+
+const ToolbarButton: React.FC<ToolbarButtonProps> = ({
+  onClick,
+  disabled = false,
+  active = false,
+  activeClass = 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+  children,
+  title,
+}) => (
+  <button
+    type="button"
+    title={title}
+    onClick={onClick}
+    disabled={disabled}
+    className={[
+      'px-3 py-1.5 rounded-md text-xs font-semibold border',
+      'transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed',
+      active
+        ? activeClass
+        : 'bg-transparent text-zinc-500 border-white/5 hover:bg-white/5 hover:text-zinc-300 hover:border-white/10',
+    ].join(' ')}
+  >
+    {children}
+  </button>
+);
+
+// ─── Connection Badge ─────────────────────────────────────────────────────────
+const ConnectionBadge: React.FC<{ status: ConnectionStatus }> = ({ status }) => {
+  const map = {
+    connected: { dot: 'bg-emerald-500', text: 'text-emerald-400', label: 'Sincronizado' },
+    connecting: { dot: 'bg-amber-500 animate-pulse', text: 'text-amber-400', label: 'Conectando…' },
+    disconnected: { dot: 'bg-red-500', text: 'text-red-400', label: 'Desconectado' },
+  };
+  const s = map[status];
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+      <span className={`text-xs font-medium ${s.text}`}>{s.label}</span>
+    </div>
+  );
+};
+
+// ─── World Editor ─────────────────────────────────────────────────────────────
 export const WorldEditor: React.FC<WorldEditorProps> = ({
   worldId,
   documentId,
@@ -28,15 +80,13 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
 }) => {
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
 
-  // Initialize Hocuspocus Provider
+  // Hocuspocus Provider
   const provider = useMemo(() => {
     return new HocuspocusProvider({
       url: websocketUrl,
       name: `${worldId}:${documentId}`,
       token,
-      parameters: {
-        worldId,
-      },
+      parameters: { worldId },
       onStatus: (event) => {
         const nextStatus = event.status as ConnectionStatus;
         setStatus(nextStatus);
@@ -51,13 +101,13 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
     };
   }, [provider]);
 
-  // TipTap Editor instance
+  // TipTap Editor
   const editor = useEditor(
     {
       editable: !readOnly,
       extensions: [
         StarterKit.configure({
-          history: false, // Handled collaboratively by Yjs
+          history: false, // gerenciado pelo Yjs
         }),
         Collaboration.configure({
           document: provider.document,
@@ -72,89 +122,65 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
 
   return (
     <div
-      className={`cybercore-editor-container ${className}`}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: '#ffffff',
-        borderRadius: '8px',
-        border: '1px solid #e2e8f0',
-        overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-        fontFamily: 'Inter, system-ui, sans-serif',
-      }}
+      className={[
+        'flex flex-col rounded-xl overflow-hidden',
+        'bg-zinc-900/40 backdrop-blur-lg',
+        'border border-white/5',
+        'shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_8px_40px_rgba(0,0,0,0.5)]',
+        className,
+      ].join(' ')}
     >
-      {/* Cybercore Top Action & Status Bar */}
+      {/* ── Toolbar ────────────────────────────────────────────────────── */}
       <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 16px',
-          backgroundColor: '#f8fafc',
-          borderBottom: '1px solid #e2e8f0',
-        }}
+        className={[
+          'flex items-center justify-between px-4 py-2.5',
+          'bg-zinc-900/60 border-b border-white/5',
+          'backdrop-blur-md',
+        ].join(' ')}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          {/* Format Actions */}
-          <button
-            type="button"
+        {/* Format & Extension Actions */}
+        <div className="flex items-center gap-1 flex-wrap">
+          <ToolbarButton
             onClick={() => editor?.chain().focus().toggleBold().run()}
             disabled={!editor || readOnly}
-            style={{
-              padding: '4px 10px',
-              fontSize: '13px',
-              fontWeight: 600,
-              borderRadius: '4px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: editor?.isActive('bold') ? '#e11d48' : '#ffffff',
-              color: editor?.isActive('bold') ? '#ffffff' : '#1e293b',
-              cursor: readOnly ? 'not-allowed' : 'pointer',
-            }}
+            active={editor?.isActive('bold') ?? false}
+            title="Negrito"
           >
-            B
-          </button>
-          <button
-            type="button"
+            <strong>B</strong>
+          </ToolbarButton>
+
+          <ToolbarButton
             onClick={() => editor?.chain().focus().toggleItalic().run()}
             disabled={!editor || readOnly}
-            style={{
-              padding: '4px 10px',
-              fontSize: '13px',
-              fontWeight: 600,
-              fontStyle: 'italic',
-              borderRadius: '4px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: editor?.isActive('italic') ? '#e11d48' : '#ffffff',
-              color: editor?.isActive('italic') ? '#ffffff' : '#1e293b',
-              cursor: readOnly ? 'not-allowed' : 'pointer',
-            }}
+            active={editor?.isActive('italic') ?? false}
+            title="Itálico"
           >
-            I
-          </button>
-          <button
-            type="button"
+            <em>I</em>
+          </ToolbarButton>
+
+          <ToolbarButton
             onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
             disabled={!editor || readOnly}
-            style={{
-              padding: '4px 10px',
-              fontSize: '13px',
-              fontWeight: 600,
-              borderRadius: '4px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: editor?.isActive('heading', { level: 2 }) ? '#e11d48' : '#ffffff',
-              color: editor?.isActive('heading', { level: 2 }) ? '#ffffff' : '#1e293b',
-              cursor: readOnly ? 'not-allowed' : 'pointer',
-            }}
+            active={editor?.isActive('heading', { level: 2 }) ?? false}
+            title="Título H2"
           >
             H2
-          </button>
+          </ToolbarButton>
 
-          <span style={{ width: '1px', height: '18px', backgroundColor: '#cbd5e1', margin: '0 4px' }} />
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+            disabled={!editor || readOnly}
+            active={editor?.isActive('heading', { level: 3 }) ?? false}
+            title="Título H3"
+          >
+            H3
+          </ToolbarButton>
 
-          {/* Custom Lore Extensions Buttons */}
-          <button
-            type="button"
+          {/* Divisor */}
+          <span className="w-px h-4 bg-white/10 mx-1" />
+
+          {/* Lore Extensions */}
+          <ToolbarButton
             onClick={() => {
               const cardId = prompt('ID do Card para mencionar:');
               const label = prompt('Texto do Card:');
@@ -170,40 +196,23 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
               }
             }}
             disabled={!editor || readOnly}
-            style={{
-              padding: '4px 10px',
-              fontSize: '12px',
-              fontWeight: 500,
-              borderRadius: '4px',
-              border: '1px solid #e11d48',
-              backgroundColor: '#fff1f2',
-              color: '#e11d48',
-              cursor: readOnly ? 'not-allowed' : 'pointer',
-            }}
+            activeClass="bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+            title="Inserir menção a card"
           >
             @ Menção
-          </button>
+          </ToolbarButton>
 
-          <button
-            type="button"
+          <ToolbarButton
             onClick={() => editor?.chain().focus().toggleMark('spoiler').run()}
             disabled={!editor || readOnly}
-            style={{
-              padding: '4px 10px',
-              fontSize: '12px',
-              fontWeight: 500,
-              borderRadius: '4px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: editor?.isActive('spoiler') ? '#fef3c7' : '#ffffff',
-              color: editor?.isActive('spoiler') ? '#b45309' : '#1e293b',
-              cursor: readOnly ? 'not-allowed' : 'pointer',
-            }}
+            active={editor?.isActive('spoiler') ?? false}
+            activeClass="bg-amber-500/15 text-amber-300 border-amber-500/25"
+            title="Marcar spoiler"
           >
             [!] Spoiler
-          </button>
+          </ToolbarButton>
 
-          <button
-            type="button"
+          <ToolbarButton
             onClick={() => {
               if (editor) {
                 editor
@@ -214,7 +223,7 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
                     content: [
                       {
                         type: 'paragraph',
-                        content: [{ type: 'text', text: 'Nota secreta do Mestre...' }],
+                        content: [{ type: 'text', text: 'Nota secreta do Mestre…' }],
                       },
                     ],
                   })
@@ -222,75 +231,33 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
               }
             }}
             disabled={!editor || readOnly}
-            style={{
-              padding: '4px 10px',
-              fontSize: '12px',
-              fontWeight: 500,
-              borderRadius: '4px',
-              border: '1px solid #64748b',
-              backgroundColor: '#f1f5f9',
-              color: '#475569',
-              cursor: readOnly ? 'not-allowed' : 'pointer',
-            }}
+            title="Inserir bloco oculto (DM only)"
           >
             🔒 Bloco Oculto
-          </button>
+          </ToolbarButton>
         </div>
 
-        {/* Real-time Cybercore Status Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-          <span
-            style={{
-              display: 'inline-block',
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor:
-                status === 'connected'
-                  ? '#10b981'
-                  : status === 'connecting'
-                    ? '#f59e0b'
-                    : '#ef4444',
-            }}
-          />
-          <span style={{ color: '#64748b', fontWeight: 500 }}>
-            {status === 'connected'
-              ? 'Sincronizado'
-              : status === 'connecting'
-                ? 'Conectando...'
-                : 'Desconectado'}
-          </span>
+        {/* Status & Read-only Badge */}
+        <div className="flex items-center gap-3">
           {readOnly && (
-            <span
-              style={{
-                backgroundColor: '#fee2e2',
-                color: '#dc2626',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontWeight: 600,
-                fontSize: '11px',
-              }}
-            >
+            <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-semibold">
               Leitura
             </span>
           )}
+          <ConnectionBadge status={status} />
         </div>
       </header>
 
-      {/* Editor Content Area */}
+      {/* ── Editor Content Area ─────────────────────────────────────────── */}
       <div
-        style={{
-          padding: '16px 20px',
-          minHeight: '350px',
-          cursor: readOnly ? 'default' : 'text',
-          fontSize: '15px',
-          lineHeight: '1.6',
-          color: '#0f172a',
-        }}
+        className={[
+          'px-8 py-7',
+          'min-h-[420px]',
+          readOnly ? 'cursor-default' : 'cursor-text',
+        ].join(' ')}
       >
         <EditorContent editor={editor} />
       </div>
     </div>
   );
 };
-
