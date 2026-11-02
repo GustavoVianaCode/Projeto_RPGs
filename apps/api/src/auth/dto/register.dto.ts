@@ -12,3 +12,4 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'Name is required' })
   name!: string;
 }
+

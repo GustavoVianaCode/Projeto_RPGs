@@ -52,3 +52,4 @@ Este documento dita os padrões obrigatórios para qualquer agente trabalhando n
 ### 2.7. Sincronização e Triggers
 - Trigger de busca em `documents` só executa quando `plainText` mudar (`WHEN (OLD."plainText" IS DISTINCT FROM NEW."plainText")`).
 - Hocuspocus: Utilizar assinatura `TiptapTransformer.fromYdoc(document, 'default')`.
+

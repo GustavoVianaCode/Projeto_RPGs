@@ -32,3 +32,9 @@ Thumbs.db
 # Database / Volumes
 pgdata/
 redisdata/
+
+# Archives
+*.rar
+*.zip
+*.tar.gz
+

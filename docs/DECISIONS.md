@@ -66,3 +66,4 @@ Este documento consolida as decisões tomadas para a plataforma de worldbuilding
 - UI de Histórico de Versões: Checkpoints e visualização de revisões anteriores.
 - Wiki Pública (`/w/[slug]`): SSR/ISR mobile-first com sanitização estrita (zero vazamento de ocultos) e teste com "SEGREDO123".
 - DevOps e Backups: CI no GitHub Actions, deploy Docker no Coolify e backup automatizado do PostgreSQL para o Cloudflare R2.
+

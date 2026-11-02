@@ -12,3 +12,4 @@ export class UpdateWorldDto {
   @MaxLength(300)
   description?: string;
 }
+

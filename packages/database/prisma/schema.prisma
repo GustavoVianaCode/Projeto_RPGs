@@ -21,6 +21,16 @@ enum WorldRole {
   VIEWER
 }
 
+enum PropertyType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+  MULTI_SELECT
+  CARD_REFERENCE
+}
+
 model User {
   id             String                   @id @default(uuid())
   email          String                   @unique
@@ -95,17 +105,23 @@ model PasswordResetToken {
 }
 
 model World {
-  id          String        @id @default(uuid())
-  name        String
-  slug        String        @unique
-  description String?
-  coverUrl    String?
-  deletedAt   DateTime?     // Soft-delete
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                  String               @id @default(uuid())
+  name                String
+  slug                String               @unique
+  description         String?
+  coverUrl            String?
+  deletedAt           DateTime?            // Soft-delete
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
-  members     WorldMember[]
-  invitations Invitation[]
+  members             WorldMember[]
+  invitations         Invitation[]
+  folders             Folder[]
+  cardTypes           CardType[]
+  propertyDefinitions PropertyDefinition[]
+  cards               Card[]
+  documents           Document[]
+  propertyValues      CardPropertyValue[]
 
   @@index([deletedAt])
   @@map("worlds")
@@ -144,4 +160,151 @@ model Invitation {
   @@unique([worldId, email])
   @@index([token])
   @@map("invitations")
+}
+
+model Folder {
+  id        String    @id @default(uuid())
+  worldId   String
+  parentId  String?
+  name      String
+  icon      String?
+  color     String?
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  world     World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  parent    Folder?   @relation("FolderHierarchy", fields: [parentId, worldId], references: [id, worldId], onDelete: Cascade)
+  children  Folder[]  @relation("FolderHierarchy")
+  cards     Card[]
+
+  @@unique([id, worldId])
+  @@index([worldId, parentId])
+  @@index([deletedAt])
+  @@map("folders")
+}
+
+model CardType {
+  id            String               @id @default(uuid())
+  worldId       String
+  parentTypeId  String?
+  name          String
+  slug          String
+  icon          String?
+  color         String?
+  defaultBlocks Json?
+  sortOrder     Int                  @default(0)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  deletedAt     DateTime?
+
+  world         World                @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  parentType    CardType?            @relation("TypeSubtypes", fields: [parentTypeId, worldId], references: [id, worldId], onDelete: Cascade)
+  subtypes      CardType[]           @relation("TypeSubtypes")
+  properties    PropertyDefinition[]
+  cards         Card[]
+
+  @@unique([id, worldId])
+  @@unique([worldId, slug])
+  @@index([deletedAt])
+  @@map("card_types")
+}
+
+model PropertyDefinition {
+  id         String              @id @default(uuid())
+  cardTypeId String
+  worldId    String
+  name       String
+  slug       String
+  type       PropertyType
+  options    Json?
+  isRequired Boolean             @default(false)
+  sortOrder  Int                 @default(0)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  world      World               @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  cardType   CardType            @relation(fields: [cardTypeId, worldId], references: [id, worldId], onDelete: Cascade)
+  values     CardPropertyValue[]
+
+  @@unique([id, worldId])
+  @@unique([cardTypeId, slug])
+  @@index([worldId])
+  @@map("property_definitions")
+}
+
+model Document {
+  id          String    @id @default(uuid())
+  worldId     String
+  yjsState    Bytes?
+  contentJson Json?
+  plainText   String    @default("") @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  world       World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  card        Card?
+
+  @@unique([id, worldId])
+  @@index([worldId])
+  @@index([deletedAt])
+  @@map("documents")
+}
+
+model Card {
+  id           String              @id @default(uuid())
+  worldId      String
+  cardTypeId   String
+  folderId     String?
+  parentCardId String?
+  documentId   String              @unique
+  title        String
+  slug         String
+  aliases      String[]            @default([])
+  summary      String?
+  coverUrl     String?
+  icon         String?
+  isPublished  Boolean             @default(false)
+  sortOrder    Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  deletedAt    DateTime?
+
+  world        World               @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  cardType     CardType            @relation(fields: [cardTypeId, worldId], references: [id, worldId], onDelete: Restrict)
+  folder       Folder?             @relation(fields: [folderId, worldId], references: [id, worldId], onDelete: Cascade)
+  parentCard   Card?               @relation("NestedCards", fields: [parentCardId, worldId], references: [id, worldId], onDelete: Cascade)
+  childCards   Card[]              @relation("NestedCards")
+  document     Document            @relation(fields: [documentId, worldId], references: [id, worldId], onDelete: Cascade)
+  properties   CardPropertyValue[]
+  referencedBy CardPropertyValue[] @relation("ReferencedTargetCard")
+
+  @@unique([id, worldId])
+  @@unique([documentId, worldId])
+  @@unique([worldId, slug])
+  @@index([worldId, folderId])
+  @@index([worldId, cardTypeId])
+  @@index([worldId, parentCardId])
+  @@index([deletedAt])
+  @@map("cards")
+}
+
+model CardPropertyValue {
+  id           String             @id @default(uuid())
+  worldId      String
+  cardId       String
+  propertyId   String
+  value        Json
+  targetCardId String?
+
+  world        World              @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  card         Card               @relation(fields: [cardId, worldId], references: [id, worldId], onDelete: Cascade)
+  property     PropertyDefinition @relation(fields: [propertyId, worldId], references: [id, worldId], onDelete: Cascade)
+  targetCard   Card?              @relation("ReferencedTargetCard", fields: [targetCardId, worldId], references: [id, worldId], onDelete: Cascade)
+
+  @@unique([cardId, propertyId])
+  @@index([worldId, targetCardId])
+  @@map("card_property_values")
 }

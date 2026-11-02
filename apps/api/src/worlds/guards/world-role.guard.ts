@@ -35,7 +35,7 @@ export class WorldRoleGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const userId = request.user?.id;
-    const worldId = request.params.id;
+    const worldId = request.params.worldId || request.params.id;
 
     if (!userId || !worldId) {
       throw new ForbiddenException('Access denied: missing context parameters.');
@@ -59,3 +59,4 @@ export class WorldRoleGuard implements CanActivate {
     return true;
   }
 }
+
