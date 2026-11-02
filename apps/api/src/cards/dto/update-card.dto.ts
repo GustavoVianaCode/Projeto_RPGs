@@ -65,3 +65,4 @@ export class UpdateCardDto {
   @IsOptional()
   propertyValues?: PropertyValueInputDto[];
 }
+

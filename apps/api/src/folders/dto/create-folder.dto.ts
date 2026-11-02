@@ -22,3 +22,4 @@ export class CreateFolderDto {
   @IsOptional()
   sortOrder?: number;
 }
+

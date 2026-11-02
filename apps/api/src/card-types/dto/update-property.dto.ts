@@ -23,3 +23,4 @@ export class UpdatePropertyDefinitionDto {
   @IsOptional()
   sortOrder?: number;
 }
+

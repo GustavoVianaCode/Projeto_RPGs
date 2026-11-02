@@ -31,3 +31,4 @@ export class CreatePropertyDefinitionDto {
   @IsOptional()
   sortOrder?: number;
 }
+

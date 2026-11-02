@@ -80,3 +80,4 @@ export class FoldersController {
     return this.foldersService.softDelete(worldId, id);
   }
 }
+

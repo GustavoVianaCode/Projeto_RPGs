@@ -78,3 +78,4 @@ export class CreateCardDto {
   @IsOptional()
   propertyValues?: PropertyValueInputDto[];
 }
+

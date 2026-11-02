@@ -8,3 +8,4 @@ import { TrashController } from './trash.controller';
   exports: [TrashService],
 })
 export class TrashModule {}
+

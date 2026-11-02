@@ -26,3 +26,4 @@ export class UpdateCardTypeDto {
   @IsOptional()
   sortOrder?: number;
 }
+

@@ -109,3 +109,4 @@ export class CardTypesController {
     return this.cardTypesService.deleteProperty(worldId, cardTypeId, id);
   }
 }
+

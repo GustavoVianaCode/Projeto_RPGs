@@ -8,3 +8,4 @@ import { CardTypesController } from './card-types.controller';
   exports: [CardTypesService],
 })
 export class CardTypesModule {}
+

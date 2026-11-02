@@ -25,3 +25,4 @@ export class TrashController {
     return this.trashService.restore(worldId, dto);
   }
 }
+

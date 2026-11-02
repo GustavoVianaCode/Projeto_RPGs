@@ -10,3 +10,4 @@ export class MoveFolderDto {
   @IsOptional()
   sortOrder?: number;
 }
+

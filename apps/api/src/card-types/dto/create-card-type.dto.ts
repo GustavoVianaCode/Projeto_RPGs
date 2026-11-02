@@ -35,3 +35,4 @@ export class CreateCardTypeDto {
   @IsOptional()
   sortOrder?: number;
 }
+

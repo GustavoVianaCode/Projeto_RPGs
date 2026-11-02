@@ -17,3 +17,4 @@ export class FilterCardsDto {
   @IsOptional()
   search?: string;
 }
+
