@@ -195,7 +195,19 @@ export class CardsService {
   }
 
   async findAll(worldId: string, filters: FilterCardsDto) {
-    const where: any = { worldId, deletedAt: null };
+    type CardWhere = {
+      worldId: string;
+      deletedAt: null;
+      folderId?: string;
+      cardTypeId?: string;
+      parentCardId?: string;
+      OR?: Array<{
+        title?: { contains: string; mode: 'insensitive' };
+        summary?: { contains: string; mode: 'insensitive' };
+        aliases?: { has: string };
+      }>;
+    };
+    const where: CardWhere = { worldId, deletedAt: null };
 
     if (filters.folderId !== undefined) {
       where.folderId = filters.folderId;

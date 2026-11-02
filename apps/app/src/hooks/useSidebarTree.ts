@@ -24,18 +24,25 @@ export interface FolderNode {
   cards: CardItem[];
 }
 
-export function useSidebarTree(worldId: string | null, token: string | null) {
-  const { data: folders, mutate: mutateFolders } = useSWR(
+export function useFolders(worldId: string | null, token: string | null) {
+  return useSWR(
     worldId && token ? [`/worlds/${worldId}/folders/tree`, token] : null,
     ([path, tok]: [string, string]) => apiFetch<FolderNode[]>(path, tok),
     { refreshInterval: 30000 },
   );
+}
 
-  const { data: cards, mutate: mutateCards } = useSWR(
+export function useCards(worldId: string | null, token: string | null) {
+  return useSWR(
     worldId && token ? [`/worlds/${worldId}/cards`, token] : null,
     ([path, tok]: [string, string]) => apiFetch<CardItem[]>(path, tok),
     { refreshInterval: 30000 },
   );
+}
+
+export function useSidebarTree(worldId: string | null, token: string | null) {
+  const { data: folders, mutate: mutateFolders } = useFolders(worldId, token);
+  const { data: cards, mutate: mutateCards } = useCards(worldId, token);
 
   function attachCards(nodes: FolderNode[]): FolderNode[] {
     return nodes.map((node) => ({
@@ -58,3 +65,4 @@ export function useSidebarTree(worldId: string | null, token: string | null) {
     },
   };
 }
+

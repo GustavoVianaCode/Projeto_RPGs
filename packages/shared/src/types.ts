@@ -13,7 +13,3 @@ export interface TipTapNode {
   [key: string]: unknown;
 }
 
-export interface SanitizeWikiAstOptions {
-  allowedCardIds?: Set<string>;
-}
-

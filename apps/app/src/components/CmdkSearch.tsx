@@ -17,12 +17,15 @@ export const CmdkSearch: React.FC<CmdkSearchProps> = ({
   const [query, setQuery] = useState('');
   const { results, isLoading } = useSearch(worldId, token, query);
 
-  // Global Ctrl+K / Cmd+K listener
+  // Global Ctrl+K / Cmd+K and Escape listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
         setOpen((prev) => !prev);
+      }
+      if (e.key === 'Escape') {
+        setOpen(false);
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -109,3 +112,4 @@ export const CmdkSearch: React.FC<CmdkSearchProps> = ({
     </div>
   );
 };
+

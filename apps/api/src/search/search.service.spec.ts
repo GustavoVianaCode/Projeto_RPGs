@@ -99,4 +99,61 @@ describe('SearchService', () => {
     // trimmed value should be 'aragorn', not '  aragorn  '
     expect(values).toContain('aragorn');
   });
+
+  it('passes trimmed query multiple times (ts_rank + similarity calls)', async () => {
+    prisma.$queryRaw.mockResolvedValue([]);
+
+    await service.search('world-1', 'gandalf');
+    const callArg = prisma.$queryRaw.mock.calls[0][0];
+    const values: unknown[] = (callArg as { values: unknown[] }).values;
+
+    // The SQL uses ${trimmed} in multiple places (plainto_tsquery x2, similarity x2)
+    // so 'gandalf' must appear at least twice in the values array
+    const occurrences = values.filter((v) => v === 'gandalf').length;
+    expect(occurrences).toBeGreaterThanOrEqual(2);
+  });
+
+  it('always includes worldId in query values for multi-tenancy isolation', async () => {
+    prisma.$queryRaw.mockResolvedValue([]);
+
+    const targetWorld = 'world-tenancy-check';
+    await service.search(targetWorld, 'dragon');
+    const callArg = prisma.$queryRaw.mock.calls[0][0];
+    const values: unknown[] = (callArg as { values: unknown[] }).values;
+
+    // worldId must appear to ensure the SQL WHERE clause filters by world
+    expect(values).toContain(targetWorld);
+  });
+
+  it('assembles raw SQL query with weighted tsvector (A, B, C, D), similarity, and soft-delete filters', async () => {
+    prisma.$queryRaw.mockResolvedValue(mockResults);
+
+    await service.search('world-42', 'mordor');
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+
+    const callArg = prisma.$queryRaw.mock.calls[0][0];
+    const sqlText = (callArg as { strings: string[] }).strings.join('?');
+
+    // Verify weights A, B, C, D
+    expect(sqlText).toContain("setweight(to_tsvector('portuguese', coalesce(c.title, '')), 'A')");
+    expect(sqlText).toContain("setweight(to_tsvector('portuguese', coalesce(array_to_string(c.aliases, ' '), '')), 'B')");
+    expect(sqlText).toContain("setweight(to_tsvector('portuguese', coalesce(c.summary, '')), 'C')");
+    expect(sqlText).toContain("setweight(to_tsvector('portuguese', coalesce(d.\"plainText\", '')), 'D')");
+
+    // Verify full-text and trigram functions
+    expect(sqlText).toContain('ts_rank');
+    expect(sqlText).toContain('plainto_tsquery');
+    expect(sqlText).toContain('similarity');
+
+    // Verify multi-tenancy and soft delete filters
+    expect(sqlText).toContain('c."deletedAt" IS NULL');
+    expect(sqlText).toContain('d."deletedAt" IS NULL');
+  });
+
+  it('returns empty array without calling DB when query has only whitespace', async () => {
+    const result = await service.search('world-1', '   ');
+    expect(result).toEqual([]);
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
+  });
 });
+

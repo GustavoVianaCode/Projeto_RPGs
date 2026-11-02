@@ -32,7 +32,7 @@ export function useSearch(
     const timer = setTimeout(() => {
       setIsLoading(true);
       apiFetch<SearchResult[]>(
-        `/worlds/${worldId}/search?q=${encodeURIComponent(query)}`,
+        `/worlds/${worldId}/search?q=${encodeURIComponent(query.trim())}`,
         token,
       )
         .then((data) => {
@@ -51,3 +51,4 @@ export function useSearch(
 
   return { results, isLoading };
 }
+

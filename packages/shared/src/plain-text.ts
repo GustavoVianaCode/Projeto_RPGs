@@ -1,5 +1,4 @@
-import { TipTapNode, SanitizeWikiAstOptions } from './types';
-import { sanitizeWikiAst } from './sanitize';
+import { TipTapNode } from './types';
 
 /**
  * Extracts plain text from a TipTap AST node recursively.
@@ -53,18 +52,6 @@ export function extractPlainText(node: TipTapNode | null | undefined): string {
 
   const separator = isBlock ? ' ' : '';
   return parts.join(separator).replace(/\s+/g, ' ').trim();
-}
-
-/**
- * Extracts plain text strictly for public consumption (wiki, previews, search indexing).
- * All hidden blocks and hidden-marked text are purged BEFORE extraction.
- */
-export function extractPublicPlainText(
-  node: TipTapNode | null | undefined,
-  options?: SanitizeWikiAstOptions,
-): string {
-  const sanitized = sanitizeWikiAst(node, options);
-  return extractPlainText(sanitized);
 }
 
 /**

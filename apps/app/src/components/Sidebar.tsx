@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSidebarTree, FolderNode, CardItem } from '../hooks/useSidebarTree';
+import { apiFetch } from '../lib/api';
 
 interface SidebarProps {
   worldId: string | null;
@@ -79,36 +80,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { tree, rootCards, isLoading, mutate } = useSidebarTree(worldId, token);
 
-  const handleNewFolder = () => {
+  const handleNewFolder = async () => {
     const name = window.prompt('Nome da nova pasta:');
     if (!name || !worldId || !token) return;
 
-    fetch(`http://localhost:4000/api/worlds/${worldId}/folders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ name }),
-    })
-      .then(() => mutate())
-      .catch(console.error);
+    try {
+      await apiFetch(`/worlds/${worldId}/folders`, token, {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      });
+      mutate();
+    } catch (err) {
+      console.error('Falha ao criar pasta:', err);
+    }
   };
 
-  const handleNewCard = () => {
+  const handleNewCard = async () => {
     const title = window.prompt('Título do novo card:');
     if (!title || !worldId || !token) return;
 
-    fetch(`http://localhost:4000/api/worlds/${worldId}/cards`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ title }),
-    })
-      .then(() => mutate())
-      .catch(console.error);
+    try {
+      const types = await apiFetch<Array<{ id: string }>>(`/worlds/${worldId}/card-types`, token);
+      const cardTypeId = types[0]?.id;
+      if (!cardTypeId) {
+        window.alert('Nenhum tipo de card encontrado neste mundo.');
+        return;
+      }
+
+      await apiFetch(`/worlds/${worldId}/cards`, token, {
+        method: 'POST',
+        body: JSON.stringify({ title, cardTypeId }),
+      });
+      mutate();
+    } catch (err) {
+      console.error('Falha ao criar card:', err);
+    }
   };
 
   return (
@@ -169,3 +175,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </div>
   );
 };
+

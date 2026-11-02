@@ -39,11 +39,11 @@ export class SearchService {
         c."documentId",
         (
           ts_rank(
-            to_tsvector('portuguese',
-              coalesce(c.title, '') || ' ' ||
-              coalesce(array_to_string(c.aliases, ' '), '') || ' ' ||
-              coalesce(c.summary, '') || ' ' ||
-              coalesce(d."plainText", '')
+            (
+              setweight(to_tsvector('portuguese', coalesce(c.title, '')), 'A') ||
+              setweight(to_tsvector('portuguese', coalesce(array_to_string(c.aliases, ' '), '')), 'B') ||
+              setweight(to_tsvector('portuguese', coalesce(c.summary, '')), 'C') ||
+              setweight(to_tsvector('portuguese', coalesce(d."plainText", '')), 'D')
             ),
             plainto_tsquery('portuguese', ${trimmed})
           ) * 2.0
@@ -59,11 +59,11 @@ export class SearchService {
         c."worldId" = ${worldId}
         AND c."deletedAt" IS NULL
         AND (
-          to_tsvector('portuguese',
-            coalesce(c.title, '') || ' ' ||
-            coalesce(array_to_string(c.aliases, ' '), '') || ' ' ||
-            coalesce(c.summary, '') || ' ' ||
-            coalesce(d."plainText", '')
+          (
+            setweight(to_tsvector('portuguese', coalesce(c.title, '')), 'A') ||
+            setweight(to_tsvector('portuguese', coalesce(array_to_string(c.aliases, ' '), '')), 'B') ||
+            setweight(to_tsvector('portuguese', coalesce(c.summary, '')), 'C') ||
+            setweight(to_tsvector('portuguese', coalesce(d."plainText", '')), 'D')
           ) @@ plainto_tsquery('portuguese', ${trimmed})
           OR similarity(c.title, ${trimmed}) > 0.15
           OR similarity(coalesce(c.summary, ''), ${trimmed}) > 0.1
@@ -75,3 +75,4 @@ export class SearchService {
     return results;
   }
 }
+

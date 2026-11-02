@@ -7,3 +7,4 @@ import { SearchController } from './search.controller';
   providers: [SearchService],
 })
 export class SearchModule {}
+

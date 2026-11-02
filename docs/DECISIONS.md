@@ -16,11 +16,10 @@ Este documento consolida as decisões tomadas para a plataforma de worldbuilding
    - O payload do Redis não deve receber `contentJson`.
    - O `jobId` não deve ser estático a ponto de descartar jobs necessários (utilizar debounce por delay dinâmico ou rate-limit).
 
-2. **Wiki Pública (Sanitização Estrita por Allow-list):**
-   - Conteúdo oculto nunca é enviado ao cliente (purga no AST/JSON antes da serialização ou renderização HTML/ISR).
-   - Nada de texto oculto em `plainText` público, `CardMention.contextText`, backlinks, tags `og:*`, `summary`, sitemap ou payload do Next.js.
-   - Teste automatizado obrigatório com marcador `"SEGREDO123"` validando que qualquer vazamento quebre os testes.
-   - Menções a cards restritos ou ausentes da wiki degradam graciosamente para texto simples.
+2. **Workspace Privado & Roadmap (Sem Wiki Pública e Sem Mapas/Zonas):**
+   - O projeto é focado 100% em ser um workspace privado para worldbuilding e anotações.
+   - Foram descontinuados do roadmap: "Wiki Pública" e "Mapas e Zonas".
+   - Novo roadmap prioritário: Módulo 4 (Busca Cmd+K & Sidebar) -> Linhas do Tempo -> Grafos/Árvores -> Dicionários/Exportação.
 
 3. **Autenticação Segura:**
    - `refreshToken` guardado apenas como hash SHA-256 e rotacionado a cada novo refresh.
@@ -62,8 +61,8 @@ Este documento consolida as decisões tomadas para a plataforma de worldbuilding
 
 ### Fase 1B: Inteligência, Busca, Histórico e Wiki (5–6 semanas)
 - Menções `@`: Popover de link rápido no editor, trigger de indexação assíncrona leve.
-- Busca Global `Cmd+K`: Full-text search no Postgres ponderado (A: title, B: summary, C: plainText) tolerante a erros e sem acentos.
+- Busca Global `Cmd+K`: Full-text search no Postgres ponderado (A: title, B: summary, C: plainText) tolerante a erros e sem acentos com pg_trgm.
 - UI de Histórico de Versões: Checkpoints e visualização de revisões anteriores.
-- Wiki Pública (`/w/[slug]`): SSR/ISR mobile-first com sanitização estrita (zero vazamento de ocultos) e teste com "SEGREDO123".
+- Roadmap subsequente: Linhas do Tempo -> Grafos/Árvores -> Dicionários/Exportação.
 - DevOps e Backups: CI no GitHub Actions, deploy Docker no Coolify e backup automatizado do PostgreSQL para o Cloudflare R2.
 

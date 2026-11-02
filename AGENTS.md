@@ -38,11 +38,10 @@ Este documento dita os padrões obrigatórios para qualquer agente trabalhando n
 - Não colocar payloads pesados como `contentJson` no Redis.
 - Não usar `jobId` estático que impeça o processamento de atualizações sequenciais legítimas.
 
-### 2.5. Wiki Pública (Sanitização Estrita por Allow-list)
-- Conteúdos marcados como ocultos (`hidden`) DEVEM ser removidos na raiz do AST JSON no servidor antes do envio ao cliente ou do SSR/ISR.
-- Nenhum trecho oculto pode vazar para `plainText` público, `contextText`, tags `og:*`, backlinks ou o payload JSON do Next.js.
-- Deve haver testes automatizados contendo o marcador `"SEGREDO123"` atestando que ele falha se for exposto publicamente.
-- Menções a cards restritos ou ausentes da wiki pública degradam para texto plano.
+### 2.5. Workspace Privado (Foco do Projeto)
+- O projeto é um workspace estritamente privado (sem Wiki Pública e sem Mapas/Zonas).
+- Roadmap futuro: Linhas do Tempo -> Grafos/Árvores -> Dicionários/Exportação.
+
 
 ### 2.6. Convites (`Invitation`)
 - Restrição única em `[worldId, email]`.

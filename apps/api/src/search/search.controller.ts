@@ -21,3 +21,4 @@ export class SearchController {
     return this.searchService.search(worldId, q);
   }
 }
+
