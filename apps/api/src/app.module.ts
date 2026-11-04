@@ -9,6 +9,8 @@ import { CardsModule } from './cards/cards.module';
 import { TrashModule } from './trash/trash.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { SearchModule } from './search/search.module';
+import { TimelinesModule } from './timelines/timelines.module';
+import { VersionsModule } from './versions/versions.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { SearchModule } from './search/search.module';
     TrashModule,
     RealtimeModule,
     SearchModule,
+    TimelinesModule,
+    VersionsModule,
   ],
 })
 export class AppModule {}

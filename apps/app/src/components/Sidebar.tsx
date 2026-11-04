@@ -1,68 +1,91 @@
 import React, { useState } from 'react';
 import { useSidebarTree, FolderNode, CardItem } from '../hooks/useSidebarTree';
 import { apiFetch } from '../lib/api';
+import {
+  IconFolder,
+  IconFolderOpen,
+  IconFolderPlus,
+  IconFileText,
+  IconFilePlus,
+  IconChevronRight,
+  IconPlus,
+  IconX,
+} from './icons';
 
 interface SidebarProps {
   worldId: string | null;
   token: string | null;
+  activeCardId?: string | null;
   onCardSelect: (cardId: string, documentId: string) => void;
 }
 
-// ─── Card Item ────────────────────────────────────────────────────────────────
+// ─── Card Row (supports child cards) ─────────────────────────────────────────
 const CardRow: React.FC<{
   card: CardItem;
   level: number;
+  activeCardId?: string | null;
   onSelect: (cardId: string, documentId: string) => void;
-}> = ({ card, level, onSelect }) => (
-  <button
-    type="button"
-    onClick={() => onSelect(card.id, card.documentId)}
-    className="flex items-center gap-2 w-full text-left rounded-md px-2 py-1 text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors duration-150"
-    style={{ paddingLeft: `calc(0.5rem + 0.75rem * ${level})` }}
-  >
-    <span className="text-sm leading-none shrink-0">{card.icon ?? '📄'}</span>
-    <span className="truncate">{card.title}</span>
-  </button>
-);
-
-// ─── Folder Node (recursive) ─────────────────────────────────────────────────
-const FolderRow: React.FC<{
-  node: FolderNode;
-  level: number;
-  onSelect: (cardId: string, documentId: string) => void;
-}> = ({ node, level, onSelect }) => {
-  const [open, setOpen] = useState(true);
+}> = ({ card, level, activeCardId, onSelect }) => {
+  const [openChildren, setOpenChildren] = useState(true);
+  const isActive = activeCardId === card.id;
+  const hasChildren = Boolean(card.children && card.children.length > 0);
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex items-center gap-2 w-full text-left rounded-md px-2 py-1 text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors duration-150"
+    <div className="flex flex-col">
+      <div
+        className={[
+          'group relative flex items-center gap-1.5 w-full rounded-lg text-xs transition-all duration-150 py-1.5 pr-2',
+          isActive
+            ? 'bg-indigo-500/15 text-indigo-100 font-medium shadow-[inset_2px_0_0_0_#818cf8]'
+            : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]',
+        ].join(' ')}
         style={{ paddingLeft: `calc(0.5rem + 0.75rem * ${level})` }}
       >
-        <span className="text-xs leading-none text-zinc-600 shrink-0">
-          {open ? '▾' : '▸'}
-        </span>
-        <span className="text-sm leading-none shrink-0">{node.icon ?? '📁'}</span>
-        <span className="truncate font-medium">{node.name}</span>
-      </button>
-
-      {open && (
-        <div>
-          {node.children.map((child) => (
-            <FolderRow
-              key={child.id}
-              node={child}
-              level={level + 1}
-              onSelect={onSelect}
+        {hasChildren ? (
+          <button
+            type="button"
+            aria-label={openChildren ? 'Recolher subcards' : 'Expandir subcards'}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenChildren((prev) => !prev);
+            }}
+            className="p-0.5 rounded text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            <IconChevronRight
+              size={12}
+              className={`transition-transform duration-150 ${openChildren ? 'rotate-90' : ''}`}
             />
-          ))}
-          {node.cards.map((card) => (
+          </button>
+        ) : (
+          <span className="w-3 shrink-0" />
+        )}
+
+        <button
+          type="button"
+          onClick={() => onSelect(card.id, card.documentId)}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left outline-none"
+        >
+          <span className="shrink-0 text-zinc-500 group-hover:text-zinc-300 transition-colors">
+            <IconFileText size={14} className={isActive ? 'text-indigo-400' : ''} />
+          </span>
+          <span className="truncate">{card.title}</span>
+        </button>
+
+        {card.cardType && (
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[9px] uppercase font-mono tracking-wider text-zinc-600 px-1 py-0.5 rounded bg-white/[0.03]">
+            {card.cardType.name}
+          </span>
+        )}
+      </div>
+
+      {hasChildren && openChildren && (
+        <div className="flex flex-col">
+          {card.children?.map((child) => (
             <CardRow
-              key={card.id}
-              card={card}
+              key={child.id}
+              card={child}
               level={level + 1}
+              activeCardId={activeCardId}
               onSelect={onSelect}
             />
           ))}
@@ -72,86 +95,238 @@ const FolderRow: React.FC<{
   );
 };
 
-// ─── Sidebar ─────────────────────────────────────────────────────────────────
+// ─── Folder Row (recursive) ──────────────────────────────────────────────────
+const FolderRow: React.FC<{
+  node: FolderNode;
+  level: number;
+  activeCardId?: string | null;
+  onSelect: (cardId: string, documentId: string) => void;
+  onAddCardToFolder: (folderId: string) => void;
+}> = ({ node, level, activeCardId, onSelect, onAddCardToFolder }) => {
+  const [open, setOpen] = useState(true);
+  const totalItems = node.children.length + node.cards.length;
+
+  return (
+    <div className="flex flex-col">
+      <div
+        className="group relative flex items-center justify-between gap-1 w-full rounded-lg text-xs py-1.5 pr-1 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] transition-colors duration-150"
+        style={{ paddingLeft: `calc(0.5rem + 0.75rem * ${level})` }}
+      >
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="flex items-center gap-1.5 flex-1 min-w-0 text-left outline-none"
+        >
+          <span className="p-0.5 text-zinc-500 group-hover:text-zinc-300 transition-colors">
+            <IconChevronRight
+              size={12}
+              className={`transition-transform duration-150 ${open ? 'rotate-90' : ''}`}
+            />
+          </span>
+          <span className="shrink-0 text-zinc-500 group-hover:text-zinc-300">
+            {open ? <IconFolderOpen size={14} /> : <IconFolder size={14} />}
+          </span>
+          <span className="truncate font-medium text-zinc-300 group-hover:text-zinc-100">
+            {node.name}
+          </span>
+        </button>
+
+        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            type="button"
+            title={`Novo card em ${node.name}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddCardToFolder(node.id);
+            }}
+            className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/10 transition-colors"
+          >
+            <IconFilePlus size={12} />
+          </button>
+        </div>
+
+        {totalItems > 0 && (
+          <span className="group-hover:hidden text-[10px] font-mono text-zinc-600 px-1">
+            {totalItems}
+          </span>
+        )}
+      </div>
+
+      {open && (
+        <div className="flex flex-col">
+          {node.children.map((child) => (
+            <FolderRow
+              key={child.id}
+              node={child}
+              level={level + 1}
+              activeCardId={activeCardId}
+              onSelect={onSelect}
+              onAddCardToFolder={onAddCardToFolder}
+            />
+          ))}
+          {node.cards.map((card) => (
+            <CardRow
+              key={card.id}
+              card={card}
+              level={level + 1}
+              activeCardId={activeCardId}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Sidebar Component ───────────────────────────────────────────────────────
 export const Sidebar: React.FC<SidebarProps> = ({
   worldId,
   token,
+  activeCardId,
   onCardSelect,
 }) => {
   const { tree, rootCards, isLoading, mutate } = useSidebarTree(worldId, token);
+  const [modalMode, setModalMode] = useState<'folder' | 'card' | null>(null);
+  const [targetFolderId, setTargetFolderId] = useState<string | null>(null);
+  const [formInput, setFormInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleNewFolder = async () => {
-    const name = window.prompt('Nome da nova pasta:');
-    if (!name || !worldId || !token) return;
+  // Close creation modal on Escape key press
+  React.useEffect(() => {
+    if (!modalMode) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setModalMode(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalMode]);
 
-    try {
-      await apiFetch(`/worlds/${worldId}/folders`, token, {
-        method: 'POST',
-        body: JSON.stringify({ name }),
-      });
-      mutate();
-    } catch (err) {
-      console.error('Falha ao criar pasta:', err);
-    }
+  const handleOpenFolderModal = () => {
+    setFormInput('');
+    setModalMode('folder');
   };
 
-  const handleNewCard = async () => {
-    const title = window.prompt('Título do novo card:');
-    if (!title || !worldId || !token) return;
+  const handleOpenCardModal = (folderId?: string) => {
+    setFormInput('');
+    setTargetFolderId(folderId ?? null);
+    setModalMode('card');
+  };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = formInput.trim();
+    if (!value || !worldId || !token || isSubmitting) return;
+
+    setIsSubmitting(true);
     try {
-      const types = await apiFetch<Array<{ id: string }>>(`/worlds/${worldId}/card-types`, token);
-      const cardTypeId = types[0]?.id;
-      if (!cardTypeId) {
-        window.alert('Nenhum tipo de card encontrado neste mundo.');
-        return;
+      if (modalMode === 'folder') {
+        await apiFetch(`/worlds/${worldId}/folders`, token, {
+          method: 'POST',
+          body: JSON.stringify({ name: value }),
+        });
+      } else if (modalMode === 'card') {
+        const types = await apiFetch<Array<{ id: string }>>(
+          `/worlds/${worldId}/card-types`,
+          token,
+        );
+        const cardTypeId = types[0]?.id;
+        if (!cardTypeId) {
+          window.alert('Nenhum tipo de card encontrado neste mundo.');
+          return;
+        }
+
+        const payload: { title: string; cardTypeId: string; folderId?: string } = {
+          title: value,
+          cardTypeId,
+        };
+        if (targetFolderId) {
+          payload.folderId = targetFolderId;
+        }
+
+        const newCard = await apiFetch<{ id: string; documentId: string }>(
+          `/worlds/${worldId}/cards`,
+          token,
+          {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          },
+        );
+
+        if (newCard?.id && newCard?.documentId) {
+          onCardSelect(newCard.id, newCard.documentId);
+        }
       }
 
-      await apiFetch(`/worlds/${worldId}/cards`, token, {
-        method: 'POST',
-        body: JSON.stringify({ title, cardTypeId }),
-      });
       mutate();
+      setModalMode(null);
+      setFormInput('');
+      setTargetFolderId(null);
     } catch (err) {
-      console.error('Falha ao criar card:', err);
+      console.error('Falha na operação:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const isEmpty = !isLoading && tree.length === 0 && rootCards.length === 0;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 mb-1">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
-          Conteúdo
+      {/* Tree Section Header */}
+      <div className="flex items-center justify-between px-2 py-1.5 mb-1 border-b border-white/[0.04]">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 font-sans">
+          Arquivo
         </span>
         <div className="flex items-center gap-1">
           <button
             type="button"
-            title="Nova Pasta"
-            onClick={handleNewFolder}
-            className="p-1 rounded hover:bg-white/5 text-zinc-600 hover:text-zinc-300 transition-colors duration-150 text-xs"
+            title="Nova pasta"
+            onClick={handleOpenFolderModal}
+            className="p-1 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
           >
-            📁+
+            <IconFolderPlus size={14} />
           </button>
           <button
             type="button"
-            title="Novo Card"
-            onClick={handleNewCard}
-            className="p-1 rounded hover:bg-white/5 text-zinc-600 hover:text-zinc-300 transition-colors duration-150 text-xs"
+            title="Novo card"
+            onClick={() => handleOpenCardModal()}
+            className="p-1 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
           >
-            📄+
+            <IconFilePlus size={14} />
           </button>
         </div>
       </div>
 
-      {/* Tree */}
-      <div className="flex-1 overflow-y-auto flex flex-col gap-0.5 px-1">
+      {/* Tree Items List */}
+      <div className="flex-1 overflow-y-auto flex flex-col gap-0.5 px-0.5 focus:outline-none">
         {isLoading && (
-          <p className="text-xs text-zinc-700 px-3 py-2">Carregando…</p>
+          <div className="px-3 py-6 flex items-center justify-center gap-2 text-xs text-zinc-600">
+            <div className="w-3 h-3 rounded-full border border-indigo-400/30 border-t-indigo-400 animate-spin" />
+            <span>Indexando arquivo…</span>
+          </div>
         )}
 
-        {!isLoading && tree.length === 0 && rootCards.length === 0 && (
-          <p className="text-xs text-zinc-700 px-3 py-2">Nenhum conteúdo ainda.</p>
+        {isEmpty && (
+          <div className="px-4 py-8 text-center flex flex-col items-center">
+            <div className="w-8 h-8 rounded-full bg-white/[0.03] border border-white/5 flex items-center justify-center text-zinc-600 mb-2">
+              <IconFileText size={16} />
+            </div>
+            <p className="text-xs text-zinc-400 font-medium">Nenhum registro</p>
+            <p className="text-[11px] text-zinc-600 mt-1 max-w-[160px]">
+              Crie uma pasta ou card para iniciar a crônica do seu mundo.
+            </p>
+            <button
+              type="button"
+              onClick={() => handleOpenCardModal()}
+              className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 hover:bg-indigo-500/20 text-xs transition-colors"
+            >
+              <IconPlus size={12} />
+              <span>Criar Card</span>
+            </button>
+          </div>
         )}
 
         {tree.map((folder) => (
@@ -159,7 +334,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             key={folder.id}
             node={folder}
             level={0}
+            activeCardId={activeCardId}
             onSelect={onCardSelect}
+            onAddCardToFolder={handleOpenCardModal}
           />
         ))}
 
@@ -168,11 +345,83 @@ export const Sidebar: React.FC<SidebarProps> = ({
             key={card.id}
             card={card}
             level={0}
+            activeCardId={activeCardId}
             onSelect={onCardSelect}
           />
         ))}
       </div>
+
+      {/* ── Modal de Criação (Pasta ou Card) ─────────────────────────────────── */}
+      {modalMode && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sidebar-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setModalMode(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl bg-zinc-900 border border-white/10 p-5 shadow-2xl backdrop-blur-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 id="sidebar-modal-title" className="text-sm font-semibold text-zinc-100">
+                {modalMode === 'folder' ? 'Criar Nova Pasta' : 'Criar Novo Card'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModalMode(null)}
+                aria-label="Fechar modal"
+                className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+              >
+                <IconX size={14} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <div>
+                <label
+                  htmlFor="sidebar-creation-input"
+                  className="block text-xs text-zinc-400 mb-1 font-medium"
+                >
+                  {modalMode === 'folder' ? 'Nome da Pasta' : 'Título do Card'}
+                </label>
+                <input
+                  id="sidebar-creation-input"
+                  type="text"
+                  autoFocus
+                  required
+                  value={formInput}
+                  onChange={(e) => setFormInput(e.target.value)}
+                  placeholder={
+                    modalMode === 'folder'
+                      ? 'ex: Facções, Geografia, Magia…'
+                      : 'ex: A Ordem dos Nove, Cidade de Arkhan…'
+                  }
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-zinc-950 border border-white/10 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-400/50"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setModalMode(null)}
+                  className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={!formInput.trim() || isSubmitting}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSubmitting ? 'Criando…' : 'Criar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-

@@ -427,4 +427,130 @@ export class CardsService {
       };
     });
   }
+
+  async getReferences(worldId: string, cardId: string) {
+    const card = await this.prisma.card.findFirst({
+      where: { id: cardId, worldId, deletedAt: null },
+      select: { id: true, title: true, slug: true },
+    });
+
+    if (!card) {
+      throw new NotFoundException('Card not found in this world.');
+    }
+
+    const [incomingMentions, outgoingMentions, referencedByProps] = await Promise.all([
+      this.prisma.mention.findMany({
+        where: { targetCardId: cardId, worldId },
+        include: {
+          sourceCard: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              icon: true,
+              documentId: true,
+              deletedAt: true,
+              cardType: { select: { id: true, name: true, color: true, icon: true } },
+              folder: { select: { id: true, name: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.mention.findMany({
+        where: { sourceCardId: cardId, worldId },
+        include: {
+          targetCard: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              icon: true,
+              documentId: true,
+              deletedAt: true,
+              cardType: { select: { id: true, name: true, color: true, icon: true } },
+              folder: { select: { id: true, name: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.cardPropertyValue.findMany({
+        where: { targetCardId: cardId, worldId },
+        include: {
+          card: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              icon: true,
+              documentId: true,
+              deletedAt: true,
+            },
+          },
+          property: {
+            select: { id: true, name: true, slug: true },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      card,
+      incoming: incomingMentions.map((m) => {
+        const isBroken = !m.sourceCard || m.sourceCard.deletedAt !== null;
+        return {
+          mentionId: m.id,
+          createdAt: m.createdAt,
+          contextText: m.contextText,
+          isBroken,
+          card: isBroken
+            ? null
+            : {
+                id: m.sourceCard!.id,
+                title: m.sourceCard!.title,
+                slug: m.sourceCard!.slug,
+                icon: m.sourceCard!.icon,
+                documentId: m.sourceCard!.documentId,
+                cardType: m.sourceCard!.cardType,
+                folder: m.sourceCard!.folder,
+              },
+        };
+      }),
+      outgoing: outgoingMentions.map((m) => {
+        const isBroken = !m.targetCard || m.targetCard.deletedAt !== null;
+        return {
+          mentionId: m.id,
+          createdAt: m.createdAt,
+          contextText: m.contextText,
+          isBroken,
+          card: isBroken
+            ? null
+            : {
+                id: m.targetCard!.id,
+                title: m.targetCard!.title,
+                slug: m.targetCard!.slug,
+                icon: m.targetCard!.icon,
+                documentId: m.targetCard!.documentId,
+                cardType: m.targetCard!.cardType,
+                folder: m.targetCard!.folder,
+              },
+        };
+      }),
+      referencedByProperties: referencedByProps
+        .filter((p) => p.card && p.card.deletedAt === null)
+        .map((p) => ({
+          propertyId: p.propertyId,
+          propertyName: p.property.name,
+          propertySlug: p.property.slug,
+          sourceCard: {
+            id: p.card.id,
+            title: p.card.title,
+            slug: p.card.slug,
+            icon: p.card.icon,
+            documentId: p.card.documentId,
+          },
+        })),
+    };
+  }
 }

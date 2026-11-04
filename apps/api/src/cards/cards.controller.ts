@@ -49,6 +49,15 @@ export class CardsController {
     return this.cardsService.findOne(worldId, id);
   }
 
+  @Get(':id/references')
+  @MinWorldRole(WorldRole.VIEWER)
+  async getReferences(
+    @Param('worldId') worldId: string,
+    @Param('id') id: string,
+  ) {
+    return this.cardsService.getReferences(worldId, id);
+  }
+
   @Patch(':id')
   @MinWorldRole(WorldRole.EDITOR)
   async update(

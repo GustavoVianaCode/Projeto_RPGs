@@ -123,6 +123,9 @@ model World {
   documents           Document[]
   propertyValues      CardPropertyValue[]
   mentions            Mention[]
+  timelines           Timeline[]
+  timelineEvents      TimelineEvent[]
+  documentVersions    DocumentVersion[]
 
   @@index([deletedAt])
   @@map("worlds")
@@ -247,6 +250,7 @@ model Document {
 
   world       World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
   card        Card?
+  versions    DocumentVersion[]
 
   @@unique([id, worldId])
   @@index([worldId])
@@ -283,6 +287,8 @@ model Card {
   referencedBy     CardPropertyValue[] @relation("ReferencedTargetCard")
   outgoingMentions Mention[]           @relation("OutgoingMentions")
   incomingMentions Mention[]           @relation("IncomingMentions")
+  timelineEvents   TimelineEvent[]
+  documentVersions DocumentVersion[]
 
   @@unique([id, worldId])
   @@unique([documentId, worldId])
@@ -330,3 +336,72 @@ model Mention {
   @@index([worldId, targetCardId])
   @@map("mentions")
 }
+
+model Timeline {
+  id          String          @id @default(uuid())
+  worldId     String
+  name        String
+  description String?
+  color       String?
+  icon        String?
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+
+  world       World           @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  events      TimelineEvent[]
+
+  @@unique([id, worldId])
+  @@index([worldId])
+  @@index([deletedAt])
+  @@map("timelines")
+}
+
+model TimelineEvent {
+  id          String    @id @default(uuid())
+  worldId     String
+  timelineId  String
+  cardId      String?
+  title       String
+  description String?   @db.Text
+  dateText    String
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  world       World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  timeline    Timeline  @relation(fields: [timelineId, worldId], references: [id, worldId], onDelete: Cascade)
+  card        Card?     @relation(fields: [cardId, worldId], references: [id, worldId], onDelete: SetNull)
+
+  @@unique([id, worldId])
+  @@index([worldId, timelineId])
+  @@index([worldId, cardId])
+  @@index([deletedAt])
+  @@map("timeline_events")
+}
+
+model DocumentVersion {
+  id            String    @id @default(uuid())
+  worldId       String
+  documentId    String
+  cardId        String
+  versionNumber Int
+  titleSnapshot String
+  contentJson   Json
+  plainText     String    @default("") @db.Text
+  label         String?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+
+  world         World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  card          Card      @relation(fields: [cardId, worldId], references: [id, worldId], onDelete: Cascade)
+  document      Document  @relation(fields: [documentId, worldId], references: [id, worldId], onDelete: Cascade)
+
+  @@unique([id, worldId])
+  @@index([worldId, cardId])
+  @@index([worldId, documentId])
+  @@map("document_versions")
+}
+

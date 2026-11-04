@@ -1,6 +1,14 @@
 import useSWR from 'swr';
 import { apiFetch } from '../lib/api';
 
+export interface CardTypeSummary {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  color: string | null;
+}
+
 export interface CardItem {
   id: string;
   title: string;
@@ -11,6 +19,12 @@ export interface CardItem {
   folderId: string | null;
   parentCardId: string | null;
   documentId: string;
+  cardType?: CardTypeSummary;
+  folder?: {
+    id: string;
+    name: string;
+  } | null;
+  children?: CardItem[];
 }
 
 export interface FolderNode {
@@ -22,6 +36,22 @@ export interface FolderNode {
   parentId: string | null;
   children: FolderNode[];
   cards: CardItem[];
+}
+
+export interface WorldInfo {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  coverUrl: string | null;
+}
+
+export function useWorld(worldId: string | null, token: string | null) {
+  return useSWR(
+    worldId && token ? [`/worlds/${worldId}`, token] : null,
+    ([path, tok]: [string, string]) => apiFetch<WorldInfo>(path, tok),
+    { revalidateOnFocus: false, dedupingInterval: 60000 },
+  );
 }
 
 export function useFolders(worldId: string | null, token: string | null) {
@@ -40,24 +70,51 @@ export function useCards(worldId: string | null, token: string | null) {
   );
 }
 
+function buildCardHierarchy(items: CardItem[]): CardItem[] {
+  const cardMap = new Map<string, CardItem>();
+  items.forEach((c) => {
+    cardMap.set(c.id, { ...c, children: [] });
+  });
+
+  const roots: CardItem[] = [];
+  cardMap.forEach((card) => {
+    if (card.parentCardId && cardMap.has(card.parentCardId)) {
+      const parent = cardMap.get(card.parentCardId);
+      if (parent) {
+        if (!parent.children) parent.children = [];
+        parent.children.push(card);
+      }
+    } else {
+      roots.push(card);
+    }
+  });
+
+  return roots;
+}
+
 export function useSidebarTree(worldId: string | null, token: string | null) {
   const { data: folders, mutate: mutateFolders } = useFolders(worldId, token);
   const { data: cards, mutate: mutateCards } = useCards(worldId, token);
 
   function attachCards(nodes: FolderNode[]): FolderNode[] {
-    return nodes.map((node) => ({
-      ...node,
-      cards: (cards ?? []).filter((c) => c.folderId === node.id),
-      children: attachCards(node.children),
-    }));
+    return nodes.map((node) => {
+      const folderCards = (cards ?? []).filter((c) => c.folderId === node.id);
+      return {
+        ...node,
+        cards: buildCardHierarchy(folderCards),
+        children: attachCards(node.children),
+      };
+    });
   }
 
-  const rootCards = (cards ?? []).filter((c) => !c.folderId && !c.parentCardId);
+  const nonFolderCards = (cards ?? []).filter((c) => !c.folderId);
+  const rootCards = buildCardHierarchy(nonFolderCards);
   const tree = attachCards(folders ?? []);
 
   return {
     tree,
     rootCards,
+    allCards: cards ?? [],
     isLoading: !folders && !cards,
     mutate: () => {
       void mutateFolders();
@@ -65,4 +122,3 @@ export function useSidebarTree(worldId: string | null, token: string | null) {
     },
   };
 }
-

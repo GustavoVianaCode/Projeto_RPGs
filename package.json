@@ -9,7 +9,9 @@
     "test:e2e": "pnpm --filter @proj/api test:e2e",
     "db:migrate": "pnpm --filter @proj/database db:migrate",
     "db:generate": "pnpm --filter @proj/database db:generate",
-    "db:studio": "pnpm --filter @proj/database db:studio"
+    "db:studio": "pnpm --filter @proj/database db:studio",
+    "db:backup": "powershell -ExecutionPolicy Bypass -File ./scripts/backup.ps1",
+    "db:restore": "powershell -ExecutionPolicy Bypass -File ./scripts/restore.ps1"
   },
   "devDependencies": {
     "prettier": "^3.5.1",

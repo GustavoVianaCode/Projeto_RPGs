@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite --port 3000 --host",
-    "build": "tsc",
+    "build": "tsc && vite build",
     "lint": "tsc --noEmit",
     "test": "jest"
   },
