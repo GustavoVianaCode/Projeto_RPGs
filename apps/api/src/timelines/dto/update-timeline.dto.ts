@@ -12,6 +12,10 @@ export class UpdateTimelineDto {
 
   @IsOptional()
   @IsString()
+  folderId?: string | null;
+
+  @IsOptional()
+  @IsString()
   color?: string;
 
   @IsOptional()
@@ -22,4 +26,3 @@ export class UpdateTimelineDto {
   @IsInt()
   sortOrder?: number;
 }
-

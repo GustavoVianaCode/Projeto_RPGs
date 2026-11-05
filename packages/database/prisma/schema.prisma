@@ -125,6 +125,7 @@ model World {
   mentions            Mention[]
   timelines           Timeline[]
   timelineEvents      TimelineEvent[]
+  timelineEventCards  TimelineEventCard[]
   documentVersions    DocumentVersion[]
 
   @@index([deletedAt])
@@ -182,6 +183,7 @@ model Folder {
   parent    Folder?   @relation("FolderHierarchy", fields: [parentId, worldId], references: [id, worldId], onDelete: Cascade)
   children  Folder[]  @relation("FolderHierarchy")
   cards     Card[]
+  timelines Timeline[]
 
   @@unique([id, worldId])
   @@index([worldId, parentId])
@@ -288,6 +290,7 @@ model Card {
   outgoingMentions Mention[]           @relation("OutgoingMentions")
   incomingMentions Mention[]           @relation("IncomingMentions")
   timelineEvents   TimelineEvent[]
+  timelineEventCards TimelineEventCard[]
   documentVersions DocumentVersion[]
 
   @@unique([id, worldId])
@@ -340,6 +343,7 @@ model Mention {
 model Timeline {
   id          String          @id @default(uuid())
   worldId     String
+  folderId    String?
   name        String
   description String?
   color       String?
@@ -350,36 +354,57 @@ model Timeline {
   deletedAt   DateTime?
 
   world       World           @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  folder      Folder?         @relation(fields: [folderId, worldId], references: [id, worldId], onDelete: SetNull)
   events      TimelineEvent[]
 
   @@unique([id, worldId])
   @@index([worldId])
+  @@index([worldId, folderId])
   @@index([deletedAt])
   @@map("timelines")
 }
 
 model TimelineEvent {
-  id          String    @id @default(uuid())
+  id          String              @id @default(uuid())
   worldId     String
   timelineId  String
   cardId      String?
   title       String
-  description String?   @db.Text
+  description String?             @db.Text
   dateText    String
-  sortOrder   Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  sortOrder   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
   deletedAt   DateTime?
 
-  world       World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
-  timeline    Timeline  @relation(fields: [timelineId, worldId], references: [id, worldId], onDelete: Cascade)
-  card        Card?     @relation(fields: [cardId, worldId], references: [id, worldId], onDelete: SetNull)
+  world       World               @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  timeline    Timeline            @relation(fields: [timelineId, worldId], references: [id, worldId], onDelete: Cascade)
+  card        Card?               @relation(fields: [cardId, worldId], references: [id, worldId], onDelete: SetNull)
+  eventCards  TimelineEventCard[]
 
   @@unique([id, worldId])
   @@index([worldId, timelineId])
   @@index([worldId, cardId])
   @@index([deletedAt])
   @@map("timeline_events")
+}
+
+model TimelineEventCard {
+  id        String        @id @default(uuid())
+  worldId   String
+  eventId   String
+  cardId    String
+  role      String?
+  createdAt DateTime      @default(now())
+
+  world     World         @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  event     TimelineEvent @relation(fields: [eventId, worldId], references: [id, worldId], onDelete: Cascade)
+  card      Card          @relation(fields: [cardId, worldId], references: [id, worldId], onDelete: Cascade)
+
+  @@unique([eventId, cardId])
+  @@index([worldId, eventId])
+  @@index([worldId, cardId])
+  @@map("timeline_event_cards")
 }
 
 model DocumentVersion {

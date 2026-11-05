@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { TimelinesService } from './timelines.service';
@@ -13,6 +14,7 @@ import { CreateTimelineDto } from './dto/create-timeline.dto';
 import { UpdateTimelineDto } from './dto/update-timeline.dto';
 import { CreateTimelineEventDto } from './dto/create-timeline-event.dto';
 import { UpdateTimelineEventDto } from './dto/update-timeline-event.dto';
+import { AddEventCardDto } from './dto/add-event-card.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MinWorldRole, WorldRoleGuard } from '../worlds/guards/world-role.guard';
 import { WorldRole } from '@proj/database';
@@ -33,8 +35,11 @@ export class TimelinesController {
 
   @Get()
   @MinWorldRole(WorldRole.VIEWER)
-  async findAll(@Param('worldId') worldId: string) {
-    return this.timelinesService.findAllTimelines(worldId);
+  async findAll(
+    @Param('worldId') worldId: string,
+    @Query('folderId') folderId?: string,
+  ) {
+    return this.timelinesService.findAllTimelines(worldId, folderId);
   }
 
   @Get(':id')
@@ -86,6 +91,16 @@ export class TimelinesController {
     return this.timelinesService.findAllEvents(worldId, timelineId);
   }
 
+  @Get(':id/events/:eventId')
+  @MinWorldRole(WorldRole.VIEWER)
+  async findOneEvent(
+    @Param('worldId') worldId: string,
+    @Param('id') timelineId: string,
+    @Param('eventId') eventId: string,
+  ) {
+    return this.timelinesService.findOneEvent(worldId, timelineId, eventId);
+  }
+
   @Patch(':id/events/:eventId')
   @MinWorldRole(WorldRole.EDITOR)
   async updateEvent(
@@ -106,5 +121,33 @@ export class TimelinesController {
   ) {
     return this.timelinesService.deleteEvent(worldId, timelineId, eventId);
   }
-}
 
+  // ─── Event-Card Links (TimelineEventCard) ───────────────────────────────────
+
+  @Post(':id/events/:eventId/cards')
+  @MinWorldRole(WorldRole.EDITOR)
+  async addEventCard(
+    @Param('worldId') worldId: string,
+    @Param('id') timelineId: string,
+    @Param('eventId') eventId: string,
+    @Body() dto: AddEventCardDto,
+  ) {
+    return this.timelinesService.addEventCard(worldId, timelineId, eventId, dto);
+  }
+
+  @Delete(':id/events/:eventId/cards/:cardId')
+  @MinWorldRole(WorldRole.EDITOR)
+  async removeEventCard(
+    @Param('worldId') worldId: string,
+    @Param('id') timelineId: string,
+    @Param('eventId') eventId: string,
+    @Param('cardId') cardId: string,
+  ) {
+    return this.timelinesService.removeEventCard(
+      worldId,
+      timelineId,
+      eventId,
+      cardId,
+    );
+  }
+}

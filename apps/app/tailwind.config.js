@@ -6,13 +6,22 @@ module.exports = {
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         serif: ['"Crimson Pro"', 'Georgia', 'serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       colors: {
-        // accent palette – violet/indigo etéreo
+        // Obsidian & warm dark workspace surfaces
+        surface: {
+          base: '#09090b',
+          card: '#101014',
+          elevated: '#17171d',
+          subtle: '#1f1f26',
+        },
+        // Accent palette – refined iris / violet
         accent: {
-          DEFAULT: '#6366f1', // indigo-500
-          hover: '#818cf8',   // indigo-400
-          muted: '#6366f120', // translúcido
+          DEFAULT: '#6366f1',
+          hover: '#818cf8',
+          muted: 'rgba(99, 102, 241, 0.12)',
+          border: 'rgba(99, 102, 241, 0.25)',
         },
       },
       backdropBlur: {

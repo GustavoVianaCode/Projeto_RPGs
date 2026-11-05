@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = 'http://localhost:4000';
 
 export async function apiFetch<T>(
   path: string,
@@ -13,7 +13,11 @@ export async function apiFetch<T>(
       ...opts?.headers,
     },
   });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  return res.json() as Promise<T>;
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => '');
+    throw new Error(`API ${res.status}: ${errorText || res.statusText}`);
+  }
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as T;
 }
 

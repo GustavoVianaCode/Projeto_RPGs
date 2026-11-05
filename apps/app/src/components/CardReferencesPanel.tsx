@@ -85,19 +85,19 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
   const propsTotal = data?.referencedByProperties.length ?? 0;
 
   return (
-    <div className="flex flex-col w-full rounded-2xl bg-zinc-900/40 backdrop-blur-xl border border-white/[0.08] p-6 shadow-2xl">
+    <div className="flex flex-col w-full rounded-xl bg-[#0e0e12] border border-white/[0.06] p-6 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-white/[0.06] mb-6">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-            <IconLink size={17} />
+      <div className="flex items-center justify-between pb-4 border-b border-white/[0.05] mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
+            <IconLink size={16} />
           </div>
           <div>
             <h2 className="text-sm font-semibold text-zinc-100">
-              Rede de Referências e Conexões
+              Referências Cruzadas
             </h2>
-            <p className="text-[11px] text-zinc-500">
-              Menções bidirecionais e vínculos deste card com outros elementos do mundo
+            <p className="text-[11px] text-zinc-500 font-mono">
+              Rede de vínculos e menções bidirecionais deste card
             </p>
           </div>
         </div>
@@ -106,21 +106,22 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
           type="button"
           onClick={fetchReferences}
           title="Recarregar referências"
-          className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
+          aria-label="Atualizar referências do card"
+          className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
         >
           <IconRefresh size={14} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
       {loading && (
-        <div className="py-16 flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs">
-          <div className="w-4 h-4 rounded-full border-2 border-indigo-500/30 border-t-indigo-400 animate-spin" />
+        <div className="py-16 flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs font-mono">
+          <div className="w-4 h-4 rounded-full border-2 border-indigo-400/30 border-t-indigo-400 animate-spin" />
           <span>Mapeando referências cruzadas…</span>
         </div>
       )}
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+        <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
           {error}
         </div>
       )}
@@ -133,27 +134,27 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
               <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5 font-mono">
                 Citado por ({incomingTotal})
               </span>
-              <span className="text-[10px] text-zinc-600 font-mono">Backlinks</span>
+              <span className="text-[10px] text-zinc-500 font-mono">Backlinks</span>
             </div>
 
             {incomingTotal === 0 ? (
-              <div className="p-5 rounded-xl border border-white/[0.04] bg-white/[0.01] text-center text-xs text-zinc-500">
-                Nenhum outro card menciona este documento ainda.
+              <div className="p-4 rounded-lg border border-white/[0.04] bg-white/[0.01] text-center text-xs text-zinc-500">
+                Nenhum outro card cita este documento ainda.
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 {data.incoming.map((m) => {
                   if (m.isBroken || !m.card) {
                     return (
                       <div
                         key={m.mentionId}
-                        className="flex items-center justify-between p-3 rounded-xl border border-rose-500/20 bg-rose-500/[0.04] text-xs"
+                        className="flex items-center justify-between p-2.5 rounded-lg border border-rose-500/20 bg-rose-500/[0.03] text-xs"
                       >
                         <div className="flex items-center gap-2 text-rose-300">
-                          <IconAlertTriangle size={14} />
-                          <span className="line-through">Card de origem excluído</span>
+                          <IconAlertTriangle size={13} className="shrink-0" />
+                          <span className="line-through text-zinc-400">Card de origem excluído</span>
                         </div>
-                        <span className="text-[10px] font-mono text-rose-400/70">quebrado</span>
+                        <span className="text-[10px] font-mono text-rose-400/80">quebrado</span>
                       </div>
                     );
                   }
@@ -163,16 +164,16 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
                       key={m.mentionId}
                       type="button"
                       onClick={() => onNavigateToCard(m.card!.id, m.card!.documentId)}
-                      className="group flex items-center justify-between p-3 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-indigo-500/30 transition-all text-left"
+                      className="group flex items-center justify-between p-2.5 rounded-lg border border-white/[0.05] bg-white/[0.015] hover:bg-white/[0.04] hover:border-white/[0.08] transition-colors text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <IconFileText size={15} className="text-zinc-500 group-hover:text-indigo-400 shrink-0" />
+                        <IconFileText size={14} className="text-zinc-500 group-hover:text-zinc-300 shrink-0" />
                         <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-medium text-zinc-200 group-hover:text-indigo-200 truncate">
+                          <span className="text-xs font-medium text-zinc-200 group-hover:text-white truncate">
                             {m.card.title}
                           </span>
                           {m.card.folder && (
-                            <span className="text-[10px] text-zinc-500 truncate">
+                            <span className="text-[10px] text-zinc-500 truncate font-mono">
                               Pasta: {m.card.folder.name}
                             </span>
                           )}
@@ -181,13 +182,13 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
 
                       <div className="flex items-center gap-2 shrink-0">
                         {m.card.cardType && (
-                          <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-zinc-400 border border-white/5">
+                          <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-white/[0.03] text-zinc-500 border border-white/5">
                             {m.card.cardType.name}
                           </span>
                         )}
                         <IconArrowRight
-                          size={13}
-                          className="text-zinc-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all"
+                          size={12}
+                          className="text-zinc-500 group-hover:text-zinc-300 transition-colors"
                         />
                       </div>
                     </button>
@@ -199,7 +200,7 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
             {/* Referenced by Properties */}
             {propsTotal > 0 && (
               <div className="mt-4 flex flex-col gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 font-mono">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 font-mono">
                   Propriedades de Relacionamento ({propsTotal})
                 </span>
                 {data.referencedByProperties.map((p) => (
@@ -207,9 +208,9 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
                     key={`${p.sourceCard.id}:${p.propertyId}`}
                     type="button"
                     onClick={() => onNavigateToCard(p.sourceCard.id, p.sourceCard.documentId)}
-                    className="group flex items-center justify-between p-2.5 rounded-lg border border-white/[0.05] bg-white/[0.015] hover:bg-white/[0.04] text-left text-xs"
+                    className="group flex items-center justify-between p-2 rounded-lg border border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03] text-left text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
                   >
-                    <span className="text-zinc-300 group-hover:text-indigo-200 truncate">
+                    <span className="text-zinc-300 group-hover:text-white truncate">
                       {p.sourceCard.title}
                     </span>
                     <span className="text-[10px] font-mono text-zinc-500 bg-white/[0.03] px-1.5 py-0.5 rounded">
@@ -227,27 +228,27 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
               <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5 font-mono">
                 Citações deste Card ({outgoingTotal})
               </span>
-              <span className="text-[10px] text-zinc-600 font-mono">Links Diretos</span>
+              <span className="text-[10px] text-zinc-500 font-mono">Links Diretos</span>
             </div>
 
             {outgoingTotal === 0 ? (
-              <div className="p-5 rounded-xl border border-white/[0.04] bg-white/[0.01] text-center text-xs text-zinc-500">
+              <div className="p-4 rounded-lg border border-white/[0.04] bg-white/[0.01] text-center text-xs text-zinc-500">
                 Você ainda não mencionou nenhum outro card no texto. Use @ no editor para citar personagens, locais ou eventos.
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
                 {data.outgoing.map((m) => {
                   if (m.isBroken || !m.card) {
                     return (
                       <div
                         key={m.mentionId}
-                        className="flex items-center justify-between p-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] text-xs"
+                        className="flex items-center justify-between p-2.5 rounded-lg border border-rose-500/20 bg-rose-500/[0.03] text-xs"
                       >
-                        <div className="flex items-center gap-2 text-amber-300">
-                          <IconAlertTriangle size={14} />
-                          <span className="line-through">Card de destino removido</span>
+                        <div className="flex items-center gap-2 text-rose-300">
+                          <IconAlertTriangle size={13} className="shrink-0" />
+                          <span className="line-through text-zinc-400">Card de destino removido</span>
                         </div>
-                        <span className="text-[10px] font-mono text-amber-400/80">link quebrado</span>
+                        <span className="text-[10px] font-mono text-rose-400/80">link quebrado</span>
                       </div>
                     );
                   }
@@ -257,16 +258,16 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
                       key={m.mentionId}
                       type="button"
                       onClick={() => onNavigateToCard(m.card!.id, m.card!.documentId)}
-                      className="group flex items-center justify-between p-3 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-indigo-500/30 transition-all text-left"
+                      className="group flex items-center justify-between p-2.5 rounded-lg border border-white/[0.05] bg-white/[0.015] hover:bg-white/[0.04] hover:border-white/[0.08] transition-colors text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <IconFileText size={15} className="text-zinc-500 group-hover:text-indigo-400 shrink-0" />
+                        <IconFileText size={14} className="text-zinc-500 group-hover:text-zinc-300 shrink-0" />
                         <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-medium text-zinc-200 group-hover:text-indigo-200 truncate">
+                          <span className="text-xs font-medium text-zinc-200 group-hover:text-white truncate">
                             {m.card.title}
                           </span>
                           {m.card.folder && (
-                            <span className="text-[10px] text-zinc-500 truncate">
+                            <span className="text-[10px] text-zinc-500 truncate font-mono">
                               Pasta: {m.card.folder.name}
                             </span>
                           )}
@@ -275,13 +276,13 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
 
                       <div className="flex items-center gap-2 shrink-0">
                         {m.card.cardType && (
-                          <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-zinc-400 border border-white/5">
+                          <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-white/[0.03] text-zinc-500 border border-white/5">
                             {m.card.cardType.name}
                           </span>
                         )}
                         <IconArrowRight
-                          size={13}
-                          className="text-zinc-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all"
+                          size={12}
+                          className="text-zinc-500 group-hover:text-zinc-300 transition-colors"
                         />
                       </div>
                     </button>
@@ -295,4 +296,3 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
     </div>
   );
 };
-

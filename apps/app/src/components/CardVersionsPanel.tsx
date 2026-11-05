@@ -105,7 +105,7 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
       );
       setVersionToRestore(null);
       setSuccessMsg(
-        `Versão #${versionToRestore.versionNumber} restaurada com sucesso! Um backup de segurança do estado anterior foi salvo.`,
+        `Versão #${versionToRestore.versionNumber} restaurada com sucesso. Um backup do estado anterior foi preservado.`,
       );
       setTimeout(() => setSuccessMsg(null), 5000);
       await fetchVersions();
@@ -118,19 +118,19 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
   };
 
   return (
-    <div className="flex flex-col w-full rounded-2xl bg-zinc-900/40 backdrop-blur-xl border border-white/[0.08] p-6 shadow-2xl">
+    <div className="flex flex-col w-full rounded-xl bg-[#0e0e12] border border-white/[0.06] p-6 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-white/[0.06] mb-6">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-            <IconHistory size={17} />
+      <div className="flex items-center justify-between pb-4 border-b border-white/[0.05] mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
+            <IconHistory size={16} />
           </div>
           <div>
             <h2 className="text-sm font-semibold text-zinc-100">
-              Histórico de Versões e Checkpoints
+              Histórico & Checkpoints
             </h2>
-            <p className="text-[11px] text-zinc-500">
-              Registre pontos de restauração manuais e reverta alterações com segurança
+            <p className="text-[11px] text-zinc-500 font-mono">
+              Pontos de restauração manuais e revisões salvas
             </p>
           </div>
         </div>
@@ -140,14 +140,15 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
             type="button"
             onClick={fetchVersions}
             title="Atualizar versões"
-            className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
+            aria-label="Atualizar lista de versões salvas"
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
           >
             <IconRefresh size={14} className={loading ? 'animate-spin' : ''} />
           </button>
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-400 transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-white/[0.06] text-zinc-200 border border-white/[0.08] hover:bg-white/[0.1] hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
           >
             <IconPlus size={13} />
             <span>Criar Checkpoint</span>
@@ -156,40 +157,40 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
       </div>
 
       {successMsg && (
-        <div className="mb-4 flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
-          <IconCheck size={15} className="shrink-0" />
+        <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
+          <IconCheck size={14} className="shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {error && (
-        <div className="mb-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+        <div className="mb-4 p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
           {error}
         </div>
       )}
 
       {loading && (
-        <div className="py-16 flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs">
-          <div className="w-4 h-4 rounded-full border-2 border-indigo-500/30 border-t-indigo-400 animate-spin" />
+        <div className="py-16 flex flex-col items-center justify-center gap-2 text-zinc-500 text-xs font-mono">
+          <div className="w-4 h-4 rounded-full border-2 border-indigo-400/30 border-t-indigo-400 animate-spin" />
           <span>Carregando arquivo de revisões…</span>
         </div>
       )}
 
       {!loading && versions.length === 0 && (
         <div className="py-16 text-center flex flex-col items-center">
-          <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-zinc-500 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-zinc-500 mb-3">
             <IconHistory size={20} />
           </div>
           <h3 className="text-sm font-semibold text-zinc-200">
             Nenhum checkpoint registrado
           </h3>
-          <p className="text-xs text-zinc-500 mt-1 max-w-sm">
-            Crie pontos de salvamento para congelar versões do documento antes de grandes reescritas na lore.
+          <p className="text-xs text-zinc-500 mt-1 max-w-sm leading-relaxed">
+            Salve versões manuais para congelar o estado do documento antes de grandes reescritas.
           </p>
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 hover:bg-indigo-500/30 transition-colors"
+            className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
           >
             <IconPlus size={13} />
             <span>Criar Primeiro Checkpoint</span>
@@ -198,7 +199,7 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
       )}
 
       {!loading && versions.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {versions.map((ver) => {
             const dateStr = new Date(ver.createdAt).toLocaleString('pt-BR', {
               day: '2-digit',
@@ -211,26 +212,26 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
             return (
               <div
                 key={ver.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg bg-white/[0.015] border border-white/[0.05] hover:border-white/[0.1] transition-colors"
               >
                 <div className="flex flex-col min-w-0 flex-1">
-                  <div className="flex items-center gap-2.5 mb-1">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/20">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-white/[0.04] text-zinc-300 border border-white/[0.06]">
                       v{ver.versionNumber}
                     </span>
-                    <span className="text-xs font-semibold text-zinc-200 truncate">
+                    <span className="text-xs font-medium text-zinc-200 truncate">
                       {ver.label || `Revisão #${ver.versionNumber}`}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 text-[11px] text-zinc-500 font-mono">
+                  <div className="flex items-center gap-2.5 text-[11px] text-zinc-500 font-mono">
                     <span>{dateStr}</span>
                     <span>·</span>
                     <span>{ver.wordCount} palavras</span>
                   </div>
 
                   {ver.preview && (
-                    <p className="text-xs text-zinc-400/80 mt-2 line-clamp-2 font-serif italic">
+                    <p className="text-xs text-zinc-400/90 mt-2 line-clamp-2 font-serif italic">
                       "{ver.preview}…"
                     </p>
                   )}
@@ -240,9 +241,9 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
                   <button
                     type="button"
                     onClick={() => setVersionToRestore(ver)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.04] text-zinc-300 border border-white/[0.08] hover:bg-indigo-500/15 hover:text-indigo-200 hover:border-indigo-500/30 transition-all"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-white/[0.03] text-zinc-300 border border-white/[0.06] hover:bg-white/[0.07] hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
                   >
-                    <IconRotateCcw size={13} />
+                    <IconRotateCcw size={12} />
                     <span>Restaurar</span>
                   </button>
                 </div>
@@ -261,7 +262,7 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
           onClick={() => setShowCreateModal(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-zinc-900 border border-white/10 p-5 shadow-2xl backdrop-blur-2xl"
+            className="w-full max-w-md rounded-xl bg-[#111115] border border-white/10 p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -271,7 +272,8 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="p-1 rounded text-zinc-500 hover:text-zinc-300 transition-colors"
+                aria-label="Fechar modal"
+                className="p-1 rounded text-zinc-400 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
               >
                 <IconX size={14} />
               </button>
@@ -288,26 +290,26 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
                   placeholder="ex: Antes da reforma militar, Rascunho final do capítulo 3"
                   value={checkpointLabel}
                   onChange={(e) => setCheckpointLabel(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-zinc-950 border border-white/10 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-400/50"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-[#09090b] border border-white/10 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-400/50"
                 />
               </div>
 
               <p className="text-[11px] text-zinc-500 leading-relaxed">
-                Um instantâneo completo do texto e da estrutura atual será congelado neste momento e poderá ser restaurado a qualquer momento.
+                Um instantâneo do texto atual será congelado neste momento e poderá ser revertido a qualquer instante.
               </p>
 
               <div className="flex items-center justify-end gap-2 mt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                  className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500 text-white hover:bg-indigo-400 disabled:opacity-40 transition-colors"
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-400 disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
                 >
                   {isSubmitting ? 'Salvando…' : 'Salvar Checkpoint'}
                 </button>
@@ -326,11 +328,11 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
           onClick={() => setVersionToRestore(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-zinc-900 border border-white/10 p-6 shadow-2xl backdrop-blur-2xl"
+            className="w-full max-w-md rounded-xl bg-[#111115] border border-white/10 p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 text-amber-400 mb-3">
-              <IconAlertTriangle size={20} />
+            <div className="flex items-center gap-2.5 text-zinc-200 mb-3">
+              <IconAlertTriangle size={18} className="text-amber-400 shrink-0" />
               <h3 className="text-sm font-semibold text-zinc-100">
                 Restaurar Versão #{versionToRestore.versionNumber}?
               </h3>
@@ -341,16 +343,16 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
               <strong className="text-white">"{versionToRestore.label || `v${versionToRestore.versionNumber}`}"</strong>.
             </p>
 
-            <div className="my-4 p-3 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-zinc-400 leading-relaxed">
-              <strong className="text-emerald-400 font-semibold block mb-0.5">Proteção de Dados Garantida:</strong>
-              Um backup automático do conteúdo que está atualmente no editor será criado imediatamente antes da restauração, para que nada seja perdido.
+            <div className="my-3.5 p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-[11px] text-zinc-400 leading-relaxed">
+              <span className="text-emerald-400 font-medium block mb-0.5">Backup Automático:</span>
+              Uma cópia de segurança do texto que está atualmente no editor será preservada antes da reversão.
             </div>
 
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setVersionToRestore(null)}
-                className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
               >
                 Cancelar
               </button>
@@ -358,9 +360,9 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
                 type="button"
                 disabled={isRestoring}
                 onClick={handleRestoreVersion}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-zinc-950 hover:bg-amber-400 disabled:opacity-40 transition-colors"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white/[0.08] text-white border border-white/[0.1] hover:bg-white/[0.15] disabled:opacity-40 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
               >
-                {isRestoring ? 'Restaurando…' : 'Sim, Restaurar Versão'}
+                {isRestoring ? 'Restaurando…' : 'Restaurar Versão'}
               </button>
             </div>
           </div>
@@ -369,4 +371,3 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
     </div>
   );
 };
-

@@ -3,7 +3,7 @@ import { WorldEditor } from './components/WorldEditor';
 import { Sidebar } from './components/Sidebar';
 import { CmdkSearch } from './components/CmdkSearch';
 import { CardReferencesPanel } from './components/CardReferencesPanel';
-import { TimelinesView } from './components/TimelinesView';
+import { TimelineView } from './components/TimelineView';
 import { CardVersionsPanel } from './components/CardVersionsPanel';
 import { useWorld, useCards } from './hooks/useSidebarTree';
 import {
@@ -51,7 +51,9 @@ export const App: React.FC = () => {
     typeof window !== 'undefined' ? window.innerWidth >= 768 : true,
   );
   const [showCollabGuide, setShowCollabGuide] = useState<boolean>(false);
+  const [showDevControls, setShowDevControls] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('lore');
+  const [activeTimelineId, setActiveTimelineId] = useState<string | null>(null);
   const [editorKey, setEditorKey] = useState<number>(0);
 
   // Fetch development bootstrap session
@@ -77,12 +79,20 @@ export const App: React.FC = () => {
     fetchSession();
   }, []);
 
-  // Fetch world and cards information for rich breadcrumbs and navigation context
+  // Fetch world and cards information for navigation context
   const { data: worldData } = useWorld(session?.worldId ?? null, session?.token ?? null);
   const { data: cardsData } = useCards(session?.worldId ?? null, session?.token ?? null);
 
   const handleCardSelect = (cardId: string, documentId: string) => {
     setActiveCard({ cardId, documentId });
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  };
+
+  const handleTimelineSelect = (timelineId: string) => {
+    setActiveTimelineId(timelineId);
+    setActiveTab('timelines');
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       setSidebarOpen(false);
     }
@@ -159,6 +169,7 @@ export const App: React.FC = () => {
       {sidebarOpen && (
         <div
           role="presentation"
+          aria-hidden="true"
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden transition-opacity duration-200"
           onClick={() => setSidebarOpen(false)}
         />
@@ -168,7 +179,7 @@ export const App: React.FC = () => {
       <aside
         className={[
           'h-full flex flex-col transition-all duration-300 ease-in-out',
-          'bg-zinc-900/95 md:bg-zinc-900/50 backdrop-blur-2xl border-r border-white/[0.06]',
+          'bg-[#0d0d11] md:bg-[#0c0c0f] border-r border-white/[0.06]',
           'select-none shrink-0 z-40',
           'fixed inset-y-0 left-0 md:relative md:z-30',
           sidebarOpen
@@ -176,54 +187,57 @@ export const App: React.FC = () => {
             : '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden md:border-r-0',
         ].join(' ')}
       >
-        <div className="flex flex-col h-full px-3 py-4 gap-3 w-64 sm:w-72 overflow-hidden">
+        <div className="flex flex-col h-full px-3 py-3.5 gap-2.5 w-64 sm:w-72 overflow-hidden">
           {/* Brand header */}
-          <div className="flex items-center justify-between px-2 pt-1 pb-2">
+          <div className="flex items-center justify-between px-2 pt-1 pb-1">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.15)]">
-                <IconAtlas size={18} />
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <IconAtlas size={16} />
               </div>
-              <div>
-                <h2 className="text-sm font-semibold tracking-tight text-zinc-100 flex items-center gap-1.5">
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold tracking-tight text-zinc-100 font-sans">
                   Lore OS
-                  <span className="text-[10px] font-mono font-normal px-1.5 py-0.2 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/20">
-                    Atlas
-                  </span>
-                </h2>
-                <p className="text-[11px] text-zinc-500 tracking-tight">Worldbuilding Engine</p>
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono tracking-tight">
+                  Workspace Pessoal
+                </span>
               </div>
             </div>
 
             <button
               type="button"
               title="Recolher barra lateral"
+              aria-label="Recolher barra lateral"
               onClick={() => setSidebarOpen(false)}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition-colors md:hidden"
+              className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition-colors md:hidden focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
             >
               <IconX size={15} />
             </button>
           </div>
 
           {/* Active World Badge / Selector */}
-          <div className="px-2 py-2 rounded-xl bg-white/[0.02] border border-white/[0.05] flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-md bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-400 shrink-0">
-              <IconGlobe size={13} />
+          <div className="px-2.5 py-2 rounded-lg bg-white/[0.02] border border-white/[0.05] flex items-center gap-2.5">
+            <div className="w-5 h-5 rounded-md bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-400 shrink-0">
+              <IconGlobe size={12} />
             </div>
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 leading-none">
+              <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-500 leading-none">
                 Mundo Ativo
               </span>
               <span className="text-xs font-medium text-zinc-200 truncate mt-0.5">
                 {worldTitle}
               </span>
             </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] shrink-0" />
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"
+              title="Mundo sincronizado"
+            />
           </div>
 
           {/* Global Search trigger (Ctrl+K) */}
           <button
             type="button"
-            className="group flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-xs text-zinc-400 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.07] hover:text-zinc-200 hover:border-white/[0.1] transition-all duration-150"
+            className="group flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] hover:text-zinc-200 hover:border-white/[0.08] transition-colors duration-140 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
             onClick={() =>
               document.dispatchEvent(
                 new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
@@ -232,7 +246,7 @@ export const App: React.FC = () => {
           >
             <IconSearch size={14} className="text-zinc-500 group-hover:text-zinc-300 transition-colors" />
             <span className="flex-1 text-left">Buscar no arquivo…</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px] text-zinc-400 border border-white/5">
+            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.04] font-mono text-[10px] text-zinc-400 border border-white/[0.06]">
               Ctrl K
             </kbd>
           </button>
@@ -243,54 +257,81 @@ export const App: React.FC = () => {
               worldId={session?.worldId ?? null}
               token={session?.token ?? null}
               activeCardId={effectiveCardId}
+              activeTimelineId={activeTimelineId}
               onCardSelect={handleCardSelect}
+              onTimelineSelect={handleTimelineSelect}
             />
           </div>
 
-          {/* Bottom Session & Dev Controls */}
-          <div className="pt-2 border-t border-white/[0.06] flex flex-col gap-2">
+          {/* Bottom Session & Discrete Dev Controls */}
+          <div className="pt-2 border-t border-white/[0.06] flex flex-col gap-1.5">
             {session && (
-              <div className="flex items-center justify-between px-2.5 py-2 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-xs font-semibold text-indigo-300 shrink-0">
-                    {userInitials}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.015] border border-white/[0.04]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-[11px] font-semibold text-indigo-300 shrink-0">
+                      {userInitials}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-medium text-zinc-200 truncate">
+                        {session.user.name}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 truncate font-mono">
+                        {session.user.email}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-medium text-zinc-200 truncate">
-                      {session.user.name}
-                    </span>
-                    <span className="text-[10px] text-zinc-500 truncate">
-                      {session.user.email}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-1">
+                  {/* Discrete Dev Toggle Button */}
                   <button
                     type="button"
-                    title="Ajuda e Guia de Colaboração"
-                    onClick={() => setShowCollabGuide(true)}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/10 transition-colors"
+                    title={showDevControls ? 'Ocultar ferramentas locais' : 'Ferramentas de desenvolvimento local'}
+                    aria-label="Ferramentas de desenvolvimento local"
+                    onClick={() => setShowDevControls((prev) => !prev)}
+                    className={[
+                      'p-1 rounded text-zinc-500 hover:text-zinc-300 transition-colors',
+                      showDevControls ? 'bg-white/[0.08] text-zinc-200' : 'hover:bg-white/[0.04]',
+                    ].join(' ')}
                   >
                     <IconInfo size={14} />
                   </button>
-                  <button
-                    type="button"
-                    title="Abrir 2ª aba (teste de colaboração instantânea)"
-                    onClick={() => window.open(window.location.href, '_blank')}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/10 transition-colors"
-                  >
-                    <IconExternalLink size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    title="Recarregar Sessão"
-                    onClick={fetchSession}
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/10 transition-colors"
-                  >
-                    <IconRefresh size={14} />
-                  </button>
                 </div>
+
+                {/* Subdued Dev Tray (shown only when explicitly expanded by dev) */}
+                {showDevControls && (
+                  <div className="flex items-center justify-between px-2 py-1 rounded bg-zinc-950/70 border border-white/[0.06] text-[11px]">
+                    <span className="text-zinc-500 font-mono text-[10px]">Dev Local:</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        title="Abrir 2ª aba (teste de colaboração instantânea)"
+                        onClick={() => window.open(window.location.href, '_blank')}
+                        className="px-2 py-0.5 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
+                      >
+                        <span className="flex items-center gap-1">
+                          <IconExternalLink size={11} />
+                          <span>2ª Aba</span>
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        title="Recarregar Sessão"
+                        onClick={fetchSession}
+                        className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
+                      >
+                        <IconRefresh size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        title="Guia de Colaboração & CRDT"
+                        onClick={() => setShowCollabGuide(true)}
+                        className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
+                      >
+                        <IconInfo size={12} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -298,140 +339,140 @@ export const App: React.FC = () => {
       </aside>
 
       {/* ── Main Workspace ───────────────────────────────────────────────── */}
-      <main className="flex-1 h-full overflow-y-auto flex flex-col relative">
+      <main className="flex-1 h-full overflow-y-auto flex flex-col relative bg-[#09090b]">
         {/* Top Navbar */}
-        <header className="sticky top-0 z-20 flex items-center justify-between px-4 sm:px-8 py-3 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/[0.06]">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-20 flex items-center justify-between px-4 sm:px-8 py-2.5 bg-[#09090b]/90 backdrop-blur-md border-b border-white/[0.06]">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
-              aria-label={sidebarOpen ? 'Ocultar barra lateral' : 'Mostrar barra lateral'}
+              aria-label={sidebarOpen ? 'Recolher barra lateral' : 'Expandir barra lateral'}
+              title={sidebarOpen ? 'Recolher barra lateral' : 'Expandir barra lateral'}
               onClick={() => setSidebarOpen((prev) => !prev)}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] transition-colors"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 shrink-0"
             >
-              <IconSidebar size={17} />
+              <IconSidebar size={16} />
             </button>
 
             {/* Breadcrumbs */}
-            <nav aria-label="Navegação hierárquica" className="hidden sm:flex items-center gap-2 text-xs font-mono text-zinc-500">
-              <span className="text-zinc-400">{worldTitle}</span>
-              <span>/</span>
+            <nav
+              aria-label="Navegação do arquivo"
+              className="flex items-center gap-1.5 text-xs text-zinc-500 font-mono truncate"
+            >
+              <span className="text-zinc-400 hover:text-zinc-200 transition-colors truncate">
+                {worldTitle}
+              </span>
+              <span className="text-zinc-600">/</span>
               {currentCard?.folder?.name && (
                 <>
-                  <span className="text-zinc-400">{currentCard.folder.name}</span>
-                  <span>/</span>
+                  <span className="text-zinc-400 truncate">{currentCard.folder.name}</span>
+                  <span className="text-zinc-600">/</span>
                 </>
               )}
-              <span className="text-indigo-300 font-medium truncate max-w-xs">{cardTitle}</span>
+              <span className="text-indigo-300 font-medium truncate max-w-[180px] sm:max-w-xs">
+                {cardTitle}
+              </span>
             </nav>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Mobile Search Button */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Global Search Button */}
             <button
               type="button"
-              aria-label="Buscar no arquivo"
+              aria-label="Buscar no arquivo (Ctrl+K)"
               onClick={() =>
                 document.dispatchEvent(
                   new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
                 )
               }
-              className="inline-flex sm:hidden p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] transition-colors"
+              className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.06] hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
             >
-              <IconSearch size={16} />
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                document.dispatchEvent(
-                  new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
-                )
-              }
-              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-zinc-400 bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.08] hover:text-zinc-200 transition-colors"
-            >
-              <IconSearch size={13} />
-              <span>Buscar</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[10px] font-mono">⌘K</kbd>
-            </button>
-
-            <button
-              type="button"
-              title="Abrir 2ª Aba para testar colaboração em tempo real"
-              onClick={() => window.open(window.location.href, '_blank')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.04] text-zinc-300 border border-white/[0.08] hover:bg-white/[0.08] hover:text-white transition-colors"
-            >
-              <IconExternalLink size={13} />
-              <span className="hidden md:inline">2ª Aba (Collab)</span>
+              <IconSearch size={13} className="text-zinc-400" />
+              <span className="hidden sm:inline">Buscar</span>
+              <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-white/[0.05] text-[10px] font-mono text-zinc-400 border border-white/[0.06]">
+                ⌘K
+              </kbd>
             </button>
           </div>
         </header>
 
         {/* ── Editorial View Navigation Tabs ─────────────────────────────────── */}
-        <div className="flex items-center gap-1 px-4 sm:px-8 py-2 bg-[#09090b]/60 backdrop-blur-md border-b border-white/[0.05] overflow-x-auto">
+        <div
+          role="tablist"
+          aria-label="Visões do workspace"
+          className="flex items-center gap-1 px-4 sm:px-8 py-2 bg-[#09090b]/80 border-b border-white/[0.05] overflow-x-auto scrollbar-none"
+        >
           <button
+            role="tab"
+            aria-selected={activeTab === 'lore'}
             type="button"
             onClick={() => setActiveTab('lore')}
             className={[
-              'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all select-none shrink-0',
+              'flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors select-none shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400',
               activeTab === 'lore'
-                ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent',
+                ? 'bg-white/[0.08] text-zinc-100 border border-white/[0.08]'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03] border border-transparent',
             ].join(' ')}
           >
-            <IconFileText size={14} className={activeTab === 'lore' ? 'text-indigo-400' : ''} />
+            <IconFileText size={14} className={activeTab === 'lore' ? 'text-indigo-400' : 'text-zinc-500'} />
             <span>Crônica & Lore</span>
           </button>
 
           <button
+            role="tab"
+            aria-selected={activeTab === 'timelines'}
             type="button"
             onClick={() => setActiveTab('timelines')}
             className={[
-              'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all select-none shrink-0',
+              'flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors select-none shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400',
               activeTab === 'timelines'
-                ? 'bg-amber-500/20 text-amber-200 border border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent',
+                ? 'bg-white/[0.08] text-zinc-100 border border-white/[0.08]'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03] border border-transparent',
             ].join(' ')}
           >
-            <IconClock size={14} className={activeTab === 'timelines' ? 'text-amber-400' : ''} />
+            <IconClock size={14} className={activeTab === 'timelines' ? 'text-amber-400' : 'text-zinc-500'} />
             <span>Linhas do Tempo</span>
           </button>
 
           <button
+            role="tab"
+            aria-selected={activeTab === 'references'}
             type="button"
             onClick={() => setActiveTab('references')}
             className={[
-              'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all select-none shrink-0',
+              'flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors select-none shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400',
               activeTab === 'references'
-                ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent',
+                ? 'bg-white/[0.08] text-zinc-100 border border-white/[0.08]'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03] border border-transparent',
             ].join(' ')}
           >
-            <IconLink size={14} className={activeTab === 'references' ? 'text-indigo-400' : ''} />
+            <IconLink size={14} className={activeTab === 'references' ? 'text-indigo-400' : 'text-zinc-500'} />
             <span>Referências Cruzadas</span>
           </button>
 
           <button
+            role="tab"
+            aria-selected={activeTab === 'versions'}
             type="button"
             onClick={() => setActiveTab('versions')}
             className={[
-              'flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all select-none shrink-0',
+              'flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors select-none shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400',
               activeTab === 'versions'
-                ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent',
+                ? 'bg-white/[0.08] text-zinc-100 border border-white/[0.08]'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.03] border border-transparent',
             ].join(' ')}
           >
-            <IconHistory size={14} className={activeTab === 'versions' ? 'text-indigo-400' : ''} />
+            <IconHistory size={14} className={activeTab === 'versions' ? 'text-indigo-400' : 'text-zinc-500'} />
             <span>Histórico & Checkpoints</span>
           </button>
         </div>
 
         {/* Central Editorial Area */}
-        <div className="flex-1 max-w-4xl w-full mx-auto py-8 sm:py-12 px-4 sm:px-8">
+        <div className="flex-1 max-w-4xl w-full mx-auto py-6 sm:py-10 px-4 sm:px-8">
           {/* Loading state */}
           {loading && (
             <div className="flex flex-col items-center justify-center py-32 gap-3 text-zinc-500">
-              <div className="w-8 h-8 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
-              <p className="text-sm font-sans tracking-wide">
+              <div className="w-7 h-7 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+              <p className="text-xs font-mono tracking-wide text-zinc-400">
                 Carregando arquivo de worldbuilding…
               </p>
             </div>
@@ -439,21 +480,21 @@ export const App: React.FC = () => {
 
           {/* Connection Error state */}
           {error && (
-            <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6 mb-8 backdrop-blur-md">
+            <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-5 mb-8">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400">
-                  <IconX size={16} />
+                <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-400">
+                  <IconX size={15} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-rose-300">
+                  <h3 className="text-xs font-semibold text-rose-300">
                     Não foi possível conectar ao servidor
                   </h3>
                   <p className="text-xs text-rose-400/80 mt-1 leading-relaxed">{error}</p>
-                  <div className="mt-4 flex items-center gap-2">
+                  <div className="mt-3.5 flex items-center gap-2">
                     <button
                       type="button"
                       onClick={fetchSession}
-                      className="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-rose-500/20 text-rose-200 border border-rose-500/30 hover:bg-rose-500/30 transition-colors"
+                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-rose-500/15 text-rose-200 border border-rose-500/30 hover:bg-rose-500/25 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-400"
                     >
                       Tentar Novamente
                     </button>
@@ -481,11 +522,13 @@ export const App: React.FC = () => {
 
           {/* Tab 2: Timelines & Historical Events */}
           {!loading && session && activeTab === 'timelines' && (
-            <TimelinesView
+            <TimelineView
               worldId={session.worldId}
               token={session.token}
+              initialTimelineId={activeTimelineId}
               availableCards={availableCardsForMentions}
               onNavigateToCard={handleNavigateToCardFromView}
+              onTimelineSelect={(id) => setActiveTimelineId(id)}
             />
           )}
 
@@ -511,10 +554,10 @@ export const App: React.FC = () => {
 
           {!loading && session && !effectiveDocumentId && (
             <div className="py-24 text-center flex flex-col items-center">
-              <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-zinc-500 mb-4">
-                <IconFileText size={24} />
+              <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-zinc-500 mb-3">
+                <IconFileText size={20} />
               </div>
-              <h2 className="text-base font-semibold text-zinc-200">Nenhum card selecionado</h2>
+              <h2 className="text-sm font-semibold text-zinc-200">Nenhum card selecionado</h2>
               <p className="text-xs text-zinc-500 mt-1 max-w-sm">
                 Selecione um documento na barra lateral ou use a busca global para abrir um card do mundo.
               </p>
@@ -528,16 +571,16 @@ export const App: React.FC = () => {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm"
           onClick={() => setShowCollabGuide(false)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl bg-zinc-900 border border-white/10 p-6 shadow-2xl backdrop-blur-2xl"
+            className="w-full max-w-md rounded-xl bg-[#111115] border border-white/10 p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
-                <IconInfo size={16} className="text-indigo-400" />
+                <IconInfo size={15} className="text-indigo-400" />
                 <h3 className="text-sm font-semibold text-zinc-100">
                   Colaboração em Tempo Real & Atalhos
                 </h3>
@@ -545,52 +588,52 @@ export const App: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowCollabGuide(false)}
-                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+                className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
               >
-                <IconX size={15} />
+                <IconX size={14} />
               </button>
             </div>
 
-            <div className="mt-4 flex flex-col gap-4 text-xs text-zinc-400 leading-relaxed">
+            <div className="mt-4 flex flex-col gap-3 text-xs text-zinc-400 leading-relaxed">
               <p>
                 Este workspace utiliza uma arquitetura colaborativa baseada em{' '}
                 <strong className="text-zinc-200">CRDTs (Yjs)</strong> e sincronização via{' '}
                 <strong className="text-zinc-200">Hocuspocus WebSocket</strong>.
               </p>
 
-              <div className="flex flex-col gap-2.5 p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+              <div className="flex flex-col gap-2 p-3 rounded-lg bg-white/[0.02] border border-white/5 font-sans">
                 <div className="flex items-start gap-2">
                   <span className="font-mono text-indigo-400 shrink-0">1.</span>
                   <span>
-                    Clique em <strong className="text-zinc-300">2ª Aba (Collab)</strong> para abrir outra janela em paralelo.
+                    Abra uma segunda aba para testar a sincronização em tempo real simultânea.
                   </span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-mono text-indigo-400 shrink-0">2.</span>
                   <span>
-                    Digite ou formate texto: as alterações são refletidas instantaneamente sem conflitos.
+                    Digite ou formate texto: as alterações são mescladas sem conflitos.
                   </span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-mono text-indigo-400 shrink-0">3.</span>
                   <span>
-                    Pressione <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[10px] text-indigo-300">Ctrl+K</kbd> para busca global por título e resumo.
+                    Pressione <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[10px] text-indigo-300">Ctrl+K</kbd> para busca rápida no arquivo.
                   </span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="font-mono text-indigo-400 shrink-0">4.</span>
                   <span>
-                    Use a ferramenta <strong className="text-zinc-300">@ Menção</strong> para linkar cards e o <strong className="text-zinc-300">Bloco Oculto</strong> para segredos de DM.
+                    Use a ferramenta <strong className="text-zinc-300">@ Menção</strong> para linkar cards e o <strong className="text-zinc-300">Bloco Oculto</strong> para notas de DM.
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-5 flex justify-end">
               <button
                 type="button"
                 onClick={() => setShowCollabGuide(false)}
-                className="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-400 transition-colors"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
               >
                 Entendido
               </button>

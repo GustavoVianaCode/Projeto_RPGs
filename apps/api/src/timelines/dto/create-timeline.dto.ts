@@ -11,6 +11,10 @@ export class CreateTimelineDto {
 
   @IsOptional()
   @IsString()
+  folderId?: string;
+
+  @IsOptional()
+  @IsString()
   color?: string;
 
   @IsOptional()
@@ -21,4 +25,3 @@ export class CreateTimelineDto {
   @IsInt()
   sortOrder?: number;
 }
-

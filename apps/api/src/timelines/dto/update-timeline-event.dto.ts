@@ -1,4 +1,6 @@
-import { IsInt, IsOptional, IsString, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsInt, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+import { EventCardLinkDto } from './create-timeline-event.dto';
 
 export class UpdateTimelineEventDto {
   @IsOptional()
@@ -20,7 +22,12 @@ export class UpdateTimelineEventDto {
   cardId?: string | null;
 
   @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EventCardLinkDto)
+  cards?: EventCardLinkDto[];
+
+  @IsOptional()
   @IsInt()
   sortOrder?: number;
 }
-
