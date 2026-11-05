@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { apiFetch } from '../lib/api';
 import {
   IconLink,
@@ -57,43 +57,54 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchReferences = async () => {
+  const fetchReferences = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
       const res = await apiFetch<ReferencesResponse>(
         `/worlds/${worldId}/cards/${cardId}/references`,
         token,
+        { signal },
       );
-      setData(res);
+      if (!signal?.aborted) {
+        setData(res);
+      }
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (err instanceof Error && err.name === 'AbortError') return;
       const msg = err instanceof Error ? err.message : 'Falha ao carregar referências';
-      setError(msg);
+      if (!signal?.aborted) {
+        setError(msg);
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, [worldId, cardId, token]);
 
   useEffect(() => {
     if (worldId && cardId && token) {
-      fetchReferences();
+      const controller = new AbortController();
+      fetchReferences(controller.signal);
+      return () => controller.abort();
     }
-  }, [worldId, cardId, token]);
+  }, [worldId, cardId, token, fetchReferences]);
 
   const incomingTotal = data?.incoming.length ?? 0;
   const outgoingTotal = data?.outgoing.length ?? 0;
   const propsTotal = data?.referencedByProperties.length ?? 0;
 
   return (
-    <div className="flex flex-col w-full rounded-xl bg-[#0e0e12] border border-white/[0.06] p-6 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+    <div className="flex flex-col w-full rounded-xl bg-[#0e0e12] border border-white/[0.06] p-5 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-white/[0.05] mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
             <IconLink size={16} />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-zinc-100">
+            <h2 className="text-sm font-semibold text-zinc-100 font-sans">
               Referências Cruzadas
             </h2>
             <p className="text-[11px] text-zinc-500 font-mono">
@@ -104,7 +115,7 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
 
         <button
           type="button"
-          onClick={fetchReferences}
+          onClick={() => fetchReferences()}
           title="Recarregar referências"
           aria-label="Atualizar referências do card"
           className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
@@ -169,7 +180,7 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <IconFileText size={14} className="text-zinc-500 group-hover:text-zinc-300 shrink-0" />
                         <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-medium text-zinc-200 group-hover:text-white truncate">
+                          <span className="text-xs font-medium text-zinc-200 group-hover:text-white truncate font-sans">
                             {m.card.title}
                           </span>
                           {m.card.folder && (
@@ -210,7 +221,7 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
                     onClick={() => onNavigateToCard(p.sourceCard.id, p.sourceCard.documentId)}
                     className="group flex items-center justify-between p-2 rounded-lg border border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03] text-left text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
                   >
-                    <span className="text-zinc-300 group-hover:text-white truncate">
+                    <span className="text-zinc-300 group-hover:text-white truncate font-sans">
                       {p.sourceCard.title}
                     </span>
                     <span className="text-[10px] font-mono text-zinc-500 bg-white/[0.03] px-1.5 py-0.5 rounded">
@@ -263,7 +274,7 @@ export const CardReferencesPanel: React.FC<CardReferencesPanelProps> = ({
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <IconFileText size={14} className="text-zinc-500 group-hover:text-zinc-300 shrink-0" />
                         <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-medium text-zinc-200 group-hover:text-white truncate">
+                          <span className="text-xs font-medium text-zinc-200 group-hover:text-white truncate font-sans">
                             {m.card.title}
                           </span>
                           {m.card.folder && (

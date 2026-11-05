@@ -1,3 +1,4 @@
+import { useMemo, useCallback } from 'react';
 import useSWR from 'swr';
 import { apiFetch } from '../lib/api';
 
@@ -70,7 +71,7 @@ export function useFolders(worldId: string | null, token: string | null) {
   return useSWR(
     worldId && token ? [`/worlds/${worldId}/folders/tree`, token] : null,
     ([path, tok]: [string, string]) => apiFetch<FolderNode[]>(path, tok),
-    { refreshInterval: 30000 },
+    { refreshInterval: 30000, dedupingInterval: 5000 },
   );
 }
 
@@ -78,7 +79,7 @@ export function useCards(worldId: string | null, token: string | null) {
   return useSWR(
     worldId && token ? [`/worlds/${worldId}/cards`, token] : null,
     ([path, tok]: [string, string]) => apiFetch<CardItem[]>(path, tok),
-    { refreshInterval: 30000 },
+    { refreshInterval: 30000, dedupingInterval: 5000 },
   );
 }
 
@@ -86,18 +87,18 @@ export function useSidebarTimelines(worldId: string | null, token: string | null
   return useSWR(
     worldId && token ? [`/worlds/${worldId}/timelines`, token] : null,
     ([path, tok]: [string, string]) => apiFetch<TimelineSummary[]>(path, tok),
-    { refreshInterval: 30000 },
+    { refreshInterval: 30000, dedupingInterval: 5000 },
   );
 }
 
 function buildCardHierarchy(items: CardItem[]): CardItem[] {
   const cardMap = new Map<string, CardItem>();
-  items.forEach((c) => {
+  for (const c of items) {
     cardMap.set(c.id, { ...c, children: [] });
-  });
+  }
 
   const roots: CardItem[] = [];
-  cardMap.forEach((card) => {
+  for (const card of cardMap.values()) {
     if (card.parentCardId && cardMap.has(card.parentCardId)) {
       const parent = cardMap.get(card.parentCardId);
       if (parent) {
@@ -107,7 +108,7 @@ function buildCardHierarchy(items: CardItem[]): CardItem[] {
     } else {
       roots.push(card);
     }
-  });
+  }
 
   return roots;
 }
@@ -117,23 +118,64 @@ export function useSidebarTree(worldId: string | null, token: string | null) {
   const { data: cards, mutate: mutateCards } = useCards(worldId, token);
   const { data: timelines, mutate: mutateTimelines } = useSidebarTimelines(worldId, token);
 
-  function attachItems(nodes: FolderNode[]): FolderNode[] {
-    return nodes.map((node) => {
-      const folderCards = (cards ?? []).filter((c) => c.folderId === node.id);
-      const folderTimelines = (timelines ?? []).filter((t) => t.folderId === node.id);
-      return {
-        ...node,
-        cards: buildCardHierarchy(folderCards),
-        timelines: folderTimelines,
-        children: attachItems(node.children),
-      };
-    });
-  }
+  const { tree, rootCards, rootTimelines } = useMemo(() => {
+    // Index cards by folderId for O(1) retrieval
+    const cardsByFolder = new Map<string, CardItem[]>();
+    const nonFolderCards: CardItem[] = [];
 
-  const nonFolderCards = (cards ?? []).filter((c) => !c.folderId);
-  const rootCards = buildCardHierarchy(nonFolderCards);
-  const rootTimelines = (timelines ?? []).filter((t) => !t.folderId);
-  const tree = attachItems(folders ?? []);
+    if (cards) {
+      for (const card of cards) {
+        if (card.folderId) {
+          const list = cardsByFolder.get(card.folderId);
+          if (list) list.push(card);
+          else cardsByFolder.set(card.folderId, [card]);
+        } else {
+          nonFolderCards.push(card);
+        }
+      }
+    }
+
+    // Index timelines by folderId
+    const timelinesByFolder = new Map<string, TimelineSummary[]>();
+    const nonFolderTimelines: TimelineSummary[] = [];
+
+    if (timelines) {
+      for (const tl of timelines) {
+        if (tl.folderId) {
+          const list = timelinesByFolder.get(tl.folderId);
+          if (list) list.push(tl);
+          else timelinesByFolder.set(tl.folderId, [tl]);
+        } else {
+          nonFolderTimelines.push(tl);
+        }
+      }
+    }
+
+    function attachItems(nodes: FolderNode[]): FolderNode[] {
+      return nodes.map((node) => {
+        const folderCards = cardsByFolder.get(node.id) || [];
+        const folderTimelines = timelinesByFolder.get(node.id) || [];
+        return {
+          ...node,
+          cards: buildCardHierarchy(folderCards),
+          timelines: folderTimelines,
+          children: attachItems(node.children),
+        };
+      });
+    }
+
+    return {
+      tree: attachItems(folders ?? []),
+      rootCards: buildCardHierarchy(nonFolderCards),
+      rootTimelines: nonFolderTimelines,
+    };
+  }, [folders, cards, timelines]);
+
+  const mutate = useCallback(() => {
+    void mutateFolders();
+    void mutateCards();
+    void mutateTimelines();
+  }, [mutateFolders, mutateCards, mutateTimelines]);
 
   return {
     tree,
@@ -142,10 +184,6 @@ export function useSidebarTree(worldId: string | null, token: string | null) {
     allCards: cards ?? [],
     allTimelines: timelines ?? [],
     isLoading: !folders && !cards,
-    mutate: () => {
-      void mutateFolders();
-      void mutateCards();
-      void mutateTimelines();
-    },
+    mutate,
   };
 }

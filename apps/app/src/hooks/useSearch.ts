@@ -18,37 +18,53 @@ export function useSearch(
   worldId: string | null,
   token: string | null,
   query: string,
-  debounceMs = 300,
+  debounceMs = 250,
 ) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!worldId || !token || query.trim().length < 2) {
+    const trimmed = query.trim();
+    if (!worldId || !token || trimmed.length < 2) {
       setResults([]);
+      setIsLoading(false);
       return;
     }
 
+    const controller = new AbortController();
+    setIsLoading(true);
+
     const timer = setTimeout(() => {
-      setIsLoading(true);
       apiFetch<SearchResult[]>(
-        `/worlds/${worldId}/search?q=${encodeURIComponent(query.trim())}`,
+        `/worlds/${worldId}/search?q=${encodeURIComponent(trimmed)}`,
         token,
+        { signal: controller.signal },
       )
         .then((data) => {
-          setResults(data);
+          if (!controller.signal.aborted) {
+            setResults(data ?? []);
+          }
         })
-        .catch(() => {
-          setResults([]);
+        .catch((err) => {
+          // Ignore cancelled/aborted fetch errors
+          if (err instanceof DOMException && err.name === 'AbortError') return;
+          if (err?.name === 'AbortError') return;
+          if (!controller.signal.aborted) {
+            setResults([]);
+          }
         })
         .finally(() => {
-          setIsLoading(false);
+          if (!controller.signal.aborted) {
+            setIsLoading(false);
+          }
         });
     }, debounceMs);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [worldId, token, query, debounceMs]);
 
   return { results, isLoading };
 }
-

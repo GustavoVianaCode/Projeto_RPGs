@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { apiFetch } from '../lib/api';
 import {
   IconHistory,
@@ -48,28 +48,39 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
   const [versionToRestore, setVersionToRestore] = useState<VersionSummary | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
 
-  const fetchVersions = async () => {
+  const fetchVersions = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
       const list = await apiFetch<VersionSummary[]>(
         `/worlds/${worldId}/cards/${cardId}/versions`,
         token,
+        { signal },
       );
-      setVersions(list);
+      if (!signal?.aborted) {
+        setVersions(list ?? []);
+      }
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (err instanceof Error && err.name === 'AbortError') return;
       const msg = err instanceof Error ? err.message : 'Falha ao buscar histórico de versões';
-      setError(msg);
+      if (!signal?.aborted) {
+        setError(msg);
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, [worldId, cardId, token]);
 
   useEffect(() => {
     if (worldId && cardId && token) {
-      fetchVersions();
+      const controller = new AbortController();
+      fetchVersions(controller.signal);
+      return () => controller.abort();
     }
-  }, [worldId, cardId, token]);
+  }, [worldId, cardId, token, fetchVersions]);
 
   const handleCreateCheckpoint = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,15 +129,15 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
   };
 
   return (
-    <div className="flex flex-col w-full rounded-xl bg-[#0e0e12] border border-white/[0.06] p-6 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+    <div className="flex flex-col w-full rounded-xl bg-[#0e0e12] border border-white/[0.06] p-5 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-white/[0.05] mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
             <IconHistory size={16} />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-zinc-100">
+            <h2 className="text-sm font-semibold text-zinc-100 font-sans">
               Histórico & Checkpoints
             </h2>
             <p className="text-[11px] text-zinc-500 font-mono">
@@ -138,7 +149,7 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={fetchVersions}
+            onClick={() => fetchVersions()}
             title="Atualizar versões"
             aria-label="Atualizar lista de versões salvas"
             className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
@@ -181,16 +192,16 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
           <div className="w-10 h-10 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center text-zinc-500 mb-3">
             <IconHistory size={20} />
           </div>
-          <h3 className="text-sm font-semibold text-zinc-200">
+          <h3 className="text-sm font-semibold text-zinc-200 font-sans">
             Nenhum checkpoint registrado
           </h3>
-          <p className="text-xs text-zinc-500 mt-1 max-w-sm leading-relaxed">
+          <p className="text-xs text-zinc-400 mt-1 max-w-sm leading-relaxed font-serif">
             Salve versões manuais para congelar o estado do documento antes de grandes reescritas.
           </p>
           <button
             type="button"
             onClick={() => setShowCreateModal(true)}
-            className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+            className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-white/[0.04] text-zinc-200 border border-white/[0.08] hover:bg-white/[0.08] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
           >
             <IconPlus size={13} />
             <span>Criar Primeiro Checkpoint</span>
@@ -219,7 +230,7 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-white/[0.04] text-zinc-300 border border-white/[0.06]">
                       v{ver.versionNumber}
                     </span>
-                    <span className="text-xs font-medium text-zinc-200 truncate">
+                    <span className="text-xs font-medium text-zinc-200 truncate font-sans">
                       {ver.label || `Revisão #${ver.versionNumber}`}
                     </span>
                   </div>
@@ -266,7 +277,7 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-zinc-100">
+              <h3 className="text-sm font-semibold text-zinc-100 font-sans">
                 Criar Checkpoint de Versão
               </h3>
               <button
@@ -294,7 +305,7 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
                 />
               </div>
 
-              <p className="text-[11px] text-zinc-500 leading-relaxed">
+              <p className="text-[11px] text-zinc-500 leading-relaxed font-sans">
                 Um instantâneo do texto atual será congelado neste momento e poderá ser revertido a qualquer instante.
               </p>
 
@@ -333,17 +344,17 @@ export const CardVersionsPanel: React.FC<CardVersionsPanelProps> = ({
           >
             <div className="flex items-center gap-2.5 text-zinc-200 mb-3">
               <IconAlertTriangle size={18} className="text-amber-400 shrink-0" />
-              <h3 className="text-sm font-semibold text-zinc-100">
+              <h3 className="text-sm font-semibold text-zinc-100 font-sans">
                 Restaurar Versão #{versionToRestore.versionNumber}?
               </h3>
             </div>
 
-            <p className="text-xs text-zinc-300 leading-relaxed">
+            <p className="text-xs text-zinc-300 leading-relaxed font-sans">
               O documento atual será revertido para o estado da revisão{' '}
               <strong className="text-white">"{versionToRestore.label || `v${versionToRestore.versionNumber}`}"</strong>.
             </p>
 
-            <div className="my-3.5 p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-[11px] text-zinc-400 leading-relaxed">
+            <div className="my-3.5 p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-[11px] text-zinc-400 leading-relaxed font-sans">
               <span className="text-emerald-400 font-medium block mb-0.5">Backup Automático:</span>
               Uma cópia de segurança do texto que está atualmente no editor será preservada antes da reversão.
             </div>

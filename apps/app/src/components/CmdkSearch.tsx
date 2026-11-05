@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Command } from 'cmdk';
 import { useSearch, SearchResult } from '../hooks/useSearch';
 import { IconSearch, IconFileText, IconX } from './icons';
@@ -38,6 +38,11 @@ export const CmdkSearch: React.FC<CmdkSearchProps> = ({
     if (!open) setQuery('');
   }, [open]);
 
+  const handleSelectItem = useCallback((cardId: string, documentId: string) => {
+    onSelect(cardId, documentId);
+    setOpen(false);
+  }, [onSelect]);
+
   if (!open) return null;
 
   return (
@@ -45,14 +50,14 @@ export const CmdkSearch: React.FC<CmdkSearchProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Busca no arquivo do mundo"
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[14vh] px-4 bg-black/75 backdrop-blur-sm transition-opacity duration-200"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-4 sm:pt-[12vh] px-3 sm:px-4 bg-black/75 backdrop-blur-sm transition-opacity duration-150"
       onClick={() => setOpen(false)}
     >
       <div
         className={[
           'w-full max-w-xl rounded-xl overflow-hidden',
           'bg-[#101014] border border-white/10',
-          'shadow-[0_16px_48px_rgba(0,0,0,0.8)]',
+          'shadow-[0_20px_50px_rgba(0,0,0,0.85)]',
           'flex flex-col',
         ].join(' ')}
         onClick={(e) => e.stopPropagation()}
@@ -116,13 +121,10 @@ export const CmdkSearch: React.FC<CmdkSearchProps> = ({
               <Command.Item
                 key={result.id}
                 value={result.id}
-                onSelect={() => {
-                  onSelect(result.id, result.documentId);
-                  setOpen(false);
-                }}
+                onSelect={() => handleSelectItem(result.id, result.documentId)}
                 className={[
                   'group flex items-center justify-between gap-3 px-3 py-2 rounded-lg cursor-pointer',
-                  'transition-colors duration-140 text-zinc-300 select-none',
+                  'transition-colors duration-150 text-zinc-300 select-none',
                   'aria-selected:bg-white/[0.08] aria-selected:text-white',
                   'hover:bg-white/[0.04]',
                 ].join(' ')}
@@ -132,7 +134,7 @@ export const CmdkSearch: React.FC<CmdkSearchProps> = ({
                     <IconFileText size={14} className="text-zinc-400 group-aria-selected:text-indigo-300" />
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-medium text-zinc-200 group-aria-selected:text-white truncate">
+                    <span className="text-xs font-medium text-zinc-200 group-aria-selected:text-white truncate font-sans">
                       {result.title}
                     </span>
                     {result.summary && (

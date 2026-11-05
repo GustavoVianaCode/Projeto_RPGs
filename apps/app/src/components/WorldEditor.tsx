@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef, memo, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
@@ -45,7 +45,7 @@ export interface WorldEditorProps {
   onStatusChange?: (status: ConnectionStatus) => void;
 }
 
-// ─── Toolbar Button ───────────────────────────────────────────────────────────
+// ─── Memoized Toolbar Button ──────────────────────────────────────────────────
 interface ToolbarButtonProps {
   onClick: () => void;
   disabled?: boolean;
@@ -56,11 +56,11 @@ interface ToolbarButtonProps {
   ariaLabel?: string;
 }
 
-const ToolbarButton: React.FC<ToolbarButtonProps> = ({
+const ToolbarButton = memo<ToolbarButtonProps>(({
   onClick,
   disabled = false,
   active = false,
-  activeClass = 'bg-white/[0.08] text-zinc-100 border-white/[0.1]',
+  activeClass = 'bg-white/[0.08] text-zinc-100 border-white/[0.12]',
   children,
   title,
   ariaLabel,
@@ -73,7 +73,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
     disabled={disabled}
     className={[
       'inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded text-xs font-medium border',
-      'transition-colors duration-140 select-none outline-none focus-visible:ring-1 focus-visible:ring-indigo-400',
+      'transition-colors duration-150 select-none outline-none focus-visible:ring-1 focus-visible:ring-indigo-400',
       'disabled:opacity-30 disabled:cursor-not-allowed shrink-0',
       active
         ? activeClass
@@ -82,10 +82,11 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   >
     {children}
   </button>
-);
+));
+ToolbarButton.displayName = 'ToolbarButton';
 
-// ─── Connection Badge ─────────────────────────────────────────────────────────
-const ConnectionBadge: React.FC<{ status: ConnectionStatus }> = ({ status }) => {
+// ─── Connection Status Badge ──────────────────────────────────────────────────
+const ConnectionBadge = memo<{ status: ConnectionStatus }>(({ status }) => {
   const map = {
     connected: { dot: 'bg-emerald-400', text: 'text-zinc-400', label: 'Sincronizado' },
     connecting: { dot: 'bg-amber-400 animate-pulse', text: 'text-amber-400/80', label: 'Conectando…' },
@@ -101,7 +102,8 @@ const ConnectionBadge: React.FC<{ status: ConnectionStatus }> = ({ status }) => 
       <span className={`text-[10px] font-mono tracking-wide ${s.text}`}>{s.label}</span>
     </div>
   );
-};
+});
+ConnectionBadge.displayName = 'ConnectionBadge';
 
 // ─── World Editor ─────────────────────────────────────────────────────────────
 export const WorldEditor: React.FC<WorldEditorProps> = ({
@@ -121,18 +123,32 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
   const [showMentionModal, setShowMentionModal] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
   const [brokenLinkWarning, setBrokenLinkWarning] = useState<string | null>(null);
+  const [wordCount, setWordCount] = useState<number>(0);
 
-  // Close mention modal on Escape key press
+  // Keep a stable ref to onStatusChange so provider is not recreated if callback prop changes
+  const onStatusChangeRef = useRef(onStatusChange);
+  useEffect(() => {
+    onStatusChangeRef.current = onStatusChange;
+  });
+
+  const wordCountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Close mention modal on Escape
   useEffect(() => {
     if (!showMentionModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowMentionModal(false);
-      }
+      if (e.key === 'Escape') setShowMentionModal(false);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showMentionModal]);
+
+  // Clean up debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (wordCountTimerRef.current) clearTimeout(wordCountTimerRef.current);
+    };
+  }, []);
 
   // Hocuspocus Provider
   const provider = useMemo(() => {
@@ -144,10 +160,10 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
       onStatus: (event) => {
         const nextStatus = event.status as ConnectionStatus;
         setStatus(nextStatus);
-        onStatusChange?.(nextStatus);
+        onStatusChangeRef.current?.(nextStatus);
       },
     });
-  }, [worldId, documentId, token, websocketUrl, onStatusChange]);
+  }, [worldId, documentId, token, websocketUrl]);
 
   useEffect(() => {
     return () => {
@@ -155,13 +171,20 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
     };
   }, [provider]);
 
-  // TipTap Editor
+  // Calculate words helper
+  const calcWords = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return 0;
+    return trimmed.split(/\s+/).filter(Boolean).length;
+  }, []);
+
+  // TipTap Editor with debounced word count computation (no expensive serialization on every render)
   const editor = useEditor(
     {
       editable: !readOnly,
       extensions: [
         StarterKit.configure({
-          history: false, // gerenciado pelo Yjs CRDT
+          history: false, // CRDT-managed by Yjs
         }),
         Collaboration.configure({
           document: provider.document,
@@ -170,22 +193,24 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
         Spoiler,
         HiddenBlock,
       ],
+      onCreate: ({ editor: ed }) => {
+        const text = ed.getText();
+        setWordCount(calcWords(text));
+      },
+      onUpdate: ({ editor: ed }) => {
+        if (wordCountTimerRef.current) clearTimeout(wordCountTimerRef.current);
+        wordCountTimerRef.current = setTimeout(() => {
+          setWordCount(calcWords(ed.getText()));
+        }, 300);
+      },
     },
-    [provider, readOnly],
+    [provider, readOnly, calcWords],
   );
-
-  // Compute reading statistics
-  const wordCount = useMemo(() => {
-    if (!editor) return 0;
-    const text = editor.getText().trim();
-    if (!text) return 0;
-    return text.split(/\s+/).filter(Boolean).length;
-  }, [editor?.getText()]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const readingTimeMin = Math.max(1, Math.ceil(wordCount / 200));
 
-  // Handle clicking mentions inside editor
-  const handleEditorClick = (e: React.MouseEvent) => {
+  // Handle clicking mentions inside editor canvas
+  const handleEditorClick = useCallback((e: React.MouseEvent) => {
     const target = (e.target as HTMLElement).closest('span[data-type="mention"]');
     if (target) {
       const targetId =
@@ -202,9 +227,9 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
         onMentionClick?.(targetId);
       }
     }
-  };
+  }, [availableCards, onMentionClick]);
 
-  const insertMention = (cardId: string, label: string) => {
+  const insertMention = useCallback((cardId: string, label: string) => {
     if (editor) {
       editor
         .chain()
@@ -217,11 +242,13 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
     }
     setShowMentionModal(false);
     setMentionFilter('');
-  };
+  }, [editor]);
 
-  const filteredCards = availableCards.filter((c) =>
-    c.title.toLowerCase().includes(mentionFilter.toLowerCase()),
-  );
+  const filteredCards = useMemo(() => {
+    if (!mentionFilter.trim()) return availableCards;
+    const lower = mentionFilter.toLowerCase();
+    return availableCards.filter((c) => c.title.toLowerCase().includes(lower));
+  }, [availableCards, mentionFilter]);
 
   return (
     <div
@@ -423,8 +450,8 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
       <div
         onClick={handleEditorClick}
         className={[
-          'px-6 py-8 sm:px-14 sm:py-12',
-          'min-h-[540px]',
+          'px-5 py-8 sm:px-12 sm:py-12',
+          'min-h-[540px] max-w-3xl mx-auto w-full',
           readOnly ? 'cursor-default' : 'cursor-text',
         ].join(' ')}
       >
@@ -500,7 +527,7 @@ export const WorldEditor: React.FC<WorldEditorProps> = ({
                         className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-left text-xs text-zinc-300 hover:bg-white/[0.06] hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
                       >
                         <IconFileText size={13} className="text-zinc-500 shrink-0" />
-                        <span className="truncate flex-1">{c.title}</span>
+                        <span className="truncate flex-1 font-sans">{c.title}</span>
                         <span className="text-[10px] text-indigo-400/80 font-mono shrink-0">Inserir</span>
                       </button>
                     ))

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import {
   useSidebarTree,
   FolderNode,
@@ -27,21 +27,21 @@ interface SidebarProps {
   onTimelineSelect?: (timelineId: string) => void;
 }
 
-// ─── Timeline Row ───────────────────────────────────────────────────────────
-const TimelineRow: React.FC<{
+// ─── Memoized Timeline Row ───────────────────────────────────────────────────
+const TimelineRow = memo<{
   timeline: TimelineSummary;
   level: number;
   activeTimelineId?: string | null;
   onSelect?: (timelineId: string) => void;
-}> = ({ timeline, level, activeTimelineId, onSelect }) => {
+}>(({ timeline, level, activeTimelineId, onSelect }) => {
   const isActive = activeTimelineId === timeline.id;
 
   return (
     <div
       className={[
-        'group relative flex items-center justify-between gap-1.5 w-full rounded-md text-xs transition-colors duration-140 py-1.5 pr-2',
+        'group relative flex items-center justify-between gap-1.5 w-full rounded-md text-xs transition-colors duration-150 py-1.5 pr-2',
         isActive
-          ? 'bg-amber-500/15 text-zinc-100 font-medium border-l-2 border-amber-400 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]'
+          ? 'bg-amber-500/10 text-zinc-100 font-medium border-l-2 border-amber-400 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]'
           : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]',
       ].join(' ')}
       style={{ paddingLeft: `calc(0.5rem + 0.85rem * ${level})` }}
@@ -49,30 +49,31 @@ const TimelineRow: React.FC<{
       <button
         type="button"
         onClick={() => onSelect?.(timeline.id)}
-        className="flex items-center gap-2 flex-1 min-w-0 text-left outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded py-0.5"
+        className="flex items-center gap-2 flex-1 min-w-0 text-left outline-none focus-visible:ring-1 focus-visible:ring-amber-400/50 rounded py-0.5"
       >
-        <span className="shrink-0 text-amber-400/90 group-hover:text-amber-300 transition-colors">
+        <span className="shrink-0 text-amber-400/80 group-hover:text-amber-300 transition-colors">
           <IconClock size={13} className={isActive ? 'text-amber-300' : ''} />
         </span>
-        <span className="truncate tracking-normal">{timeline.name}</span>
+        <span className="truncate tracking-tight font-sans">{timeline.name}</span>
       </button>
 
       {timeline._count?.events !== undefined && timeline._count.events > 0 && (
-        <span className="text-[10px] font-mono text-zinc-500 px-1 rounded bg-white/[0.04] border border-white/[0.04]">
+        <span className="text-[10px] font-mono text-zinc-500 px-1.5 py-0.2 rounded bg-white/[0.04] border border-white/[0.05]">
           {timeline._count.events}
         </span>
       )}
     </div>
   );
-};
+});
+TimelineRow.displayName = 'TimelineRow';
 
-// ─── Card Row (supports child cards) ─────────────────────────────────────────
-const CardRow: React.FC<{
+// ─── Memoized Card Row (supports recursive subcards) ─────────────────────────
+const CardRow = memo<{
   card: CardItem;
   level: number;
   activeCardId?: string | null;
   onSelect: (cardId: string, documentId: string) => void;
-}> = ({ card, level, activeCardId, onSelect }) => {
+}>(({ card, level, activeCardId, onSelect }) => {
   const [openChildren, setOpenChildren] = useState(true);
   const isActive = activeCardId === card.id;
   const hasChildren = Boolean(card.children && card.children.length > 0);
@@ -81,9 +82,9 @@ const CardRow: React.FC<{
     <div className="flex flex-col">
       <div
         className={[
-          'group relative flex items-center gap-1.5 w-full rounded-md text-xs transition-colors duration-140 py-1.5 pr-2',
+          'group relative flex items-center gap-1.5 w-full rounded-md text-xs transition-colors duration-150 py-1.5 pr-2',
           isActive
-            ? 'bg-indigo-500/15 text-zinc-100 font-medium border-l-2 border-indigo-400 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]'
+            ? 'bg-white/[0.08] text-zinc-100 font-medium border-l-2 border-indigo-400 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]'
             : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]',
         ].join(' ')}
         style={{ paddingLeft: `calc(0.5rem + 0.85rem * ${level})` }}
@@ -96,7 +97,7 @@ const CardRow: React.FC<{
               e.stopPropagation();
               setOpenChildren((prev) => !prev);
             }}
-            className="p-0.5 rounded text-zinc-500 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+            className="p-0.5 rounded text-zinc-500 hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400/50"
           >
             <IconChevronRight
               size={12}
@@ -110,23 +111,23 @@ const CardRow: React.FC<{
         <button
           type="button"
           onClick={() => onSelect(card.id, card.documentId)}
-          className="flex items-center gap-2 flex-1 min-w-0 text-left outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded py-0.5"
+          className="flex items-center gap-2 flex-1 min-w-0 text-left outline-none focus-visible:ring-1 focus-visible:ring-indigo-400/50 rounded py-0.5"
         >
           <span className="shrink-0 text-zinc-500 group-hover:text-zinc-300 transition-colors">
-            <IconFileText size={14} className={isActive ? 'text-indigo-400' : ''} />
+            <IconFileText size={13} className={isActive ? 'text-indigo-400' : ''} />
           </span>
-          <span className="truncate tracking-normal">{card.title}</span>
+          <span className="truncate tracking-tight font-sans">{card.title}</span>
         </button>
 
         {card.cardType && (
-          <span className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity text-[9px] uppercase font-mono tracking-wider text-zinc-500 px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.04]">
+          <span className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity text-[9px] uppercase font-mono tracking-wider text-zinc-500 px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.05]">
             {card.cardType.name}
           </span>
         )}
       </div>
 
       {hasChildren && openChildren && (
-        <div className="flex flex-col border-l border-white/[0.04] ml-3.5 my-0.5">
+        <div className="flex flex-col border-l border-white/[0.06] ml-3.5 my-0.5">
           {card.children?.map((child) => (
             <CardRow
               key={child.id}
@@ -140,10 +141,11 @@ const CardRow: React.FC<{
       )}
     </div>
   );
-};
+});
+CardRow.displayName = 'CardRow';
 
-// ─── Folder Row (recursive) ──────────────────────────────────────────────────
-const FolderRow: React.FC<{
+// ─── Memoized Folder Row (recursive) ─────────────────────────────────────────
+const FolderRow = memo<{
   node: FolderNode;
   level: number;
   activeCardId?: string | null;
@@ -152,7 +154,7 @@ const FolderRow: React.FC<{
   onTimelineSelect?: (timelineId: string) => void;
   onAddCardToFolder: (folderId: string) => void;
   onAddTimelineToFolder: (folderId: string) => void;
-}> = ({
+}>(({
   node,
   level,
   activeCardId,
@@ -169,13 +171,13 @@ const FolderRow: React.FC<{
   return (
     <div className="flex flex-col">
       <div
-        className="group relative flex items-center justify-between gap-1 w-full rounded-md text-xs py-1.5 pr-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] transition-colors duration-140"
+        className="group relative flex items-center justify-between gap-1 w-full rounded-md text-xs py-1.5 pr-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] transition-colors duration-150"
         style={{ paddingLeft: `calc(0.5rem + 0.85rem * ${level})` }}
       >
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="flex items-center gap-1.5 flex-1 min-w-0 text-left outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 rounded py-0.5"
+          className="flex items-center gap-1.5 flex-1 min-w-0 text-left outline-none focus-visible:ring-1 focus-visible:ring-indigo-400/50 rounded py-0.5"
           aria-expanded={open}
         >
           <span className="p-0.5 text-zinc-500 group-hover:text-zinc-300 transition-colors">
@@ -187,12 +189,12 @@ const FolderRow: React.FC<{
           <span className="shrink-0 text-zinc-400 group-hover:text-zinc-200 transition-colors">
             {open ? <IconFolderOpen size={14} className="text-zinc-300" /> : <IconFolder size={14} />}
           </span>
-          <span className="truncate font-medium text-zinc-300 group-hover:text-zinc-100">
+          <span className="truncate font-medium text-zinc-300 group-hover:text-zinc-100 font-sans">
             {node.name}
           </span>
         </button>
 
-        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
           <button
             type="button"
             title={`Nova Linha do Tempo em ${node.name}`}
@@ -227,7 +229,7 @@ const FolderRow: React.FC<{
       </div>
 
       {open && (
-        <div className="flex flex-col border-l border-white/[0.04] ml-3.5 my-0.5">
+        <div className="flex flex-col border-l border-white/[0.06] ml-3.5 my-0.5">
           {node.children.map((child) => (
             <FolderRow
               key={child.id}
@@ -263,6 +265,179 @@ const FolderRow: React.FC<{
       )}
     </div>
   );
+});
+FolderRow.displayName = 'FolderRow';
+
+// ─── Extracted Modal (prevents form input keystrokes from re-rendering tree) ───
+interface SidebarModalProps {
+  mode: 'folder' | 'card' | 'timeline';
+  targetFolderId: string | null;
+  worldId: string;
+  token: string;
+  onClose: () => void;
+  onSuccess: (type: 'folder' | 'card' | 'timeline', id?: string, docId?: string) => void;
+}
+
+const SidebarCreationModal: React.FC<SidebarModalProps> = ({
+  mode,
+  targetFolderId,
+  worldId,
+  token,
+  onClose,
+  onSuccess,
+}) => {
+  const [formInput, setFormInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Close on Escape
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = formInput.trim();
+    if (!value || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      if (mode === 'folder') {
+        await apiFetch(`/worlds/${worldId}/folders`, token, {
+          method: 'POST',
+          body: JSON.stringify({ name: value }),
+        });
+        onSuccess('folder');
+      } else if (mode === 'timeline') {
+        const payload: { name: string; folderId?: string } = { name: value };
+        if (targetFolderId) payload.folderId = targetFolderId;
+
+        const newTimeline = await apiFetch<{ id: string }>(
+          `/worlds/${worldId}/timelines`,
+          token,
+          {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          },
+        );
+        onSuccess('timeline', newTimeline?.id);
+      } else if (mode === 'card') {
+        const types = await apiFetch<Array<{ id: string }>>(
+          `/worlds/${worldId}/card-types`,
+          token,
+        );
+        const cardTypeId = types[0]?.id;
+        if (!cardTypeId) {
+          window.alert('Nenhum tipo de card encontrado neste mundo.');
+          return;
+        }
+
+        const payload: { title: string; cardTypeId: string; folderId?: string } = {
+          title: value,
+          cardTypeId,
+        };
+        if (targetFolderId) payload.folderId = targetFolderId;
+
+        const newCard = await apiFetch<{ id: string; documentId: string }>(
+          `/worlds/${worldId}/cards`,
+          token,
+          {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          },
+        );
+        onSuccess('card', newCard?.id, newCard?.documentId);
+      }
+    } catch (err) {
+      console.error('Falha na operação:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sidebar-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-xl bg-[#111115] border border-white/10 p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 id="sidebar-modal-title" className="text-sm font-semibold text-zinc-100">
+            {mode === 'folder'
+              ? 'Criar Nova Pasta'
+              : mode === 'timeline'
+                ? 'Criar Nova Linha do Tempo'
+                : 'Criar Novo Card'}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar modal"
+            className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+          >
+            <IconX size={14} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <div>
+            <label
+              htmlFor="sidebar-creation-input"
+              className="block text-xs text-zinc-400 mb-1.5 font-medium"
+            >
+              {mode === 'folder'
+                ? 'Nome da Pasta'
+                : mode === 'timeline'
+                  ? 'Nome da Linha do Tempo'
+                  : 'Título do Card'}
+            </label>
+            <input
+              id="sidebar-creation-input"
+              type="text"
+              autoFocus
+              required
+              value={formInput}
+              onChange={(e) => setFormInput(e.target.value)}
+              placeholder={
+                mode === 'folder'
+                  ? 'ex: Facções, Geografia, Magia…'
+                  : mode === 'timeline'
+                    ? 'ex: História Antiga, Guerra dos Cem Anos…'
+                    : 'ex: A Ordem dos Nove, Cidade de Arkhan…'
+              }
+              className="w-full px-3 py-2 text-xs rounded-lg bg-[#09090b] border border-white/10 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={!formInput.trim() || isSubmitting}
+              className="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+            >
+              {isSubmitting ? 'Criando…' : 'Criar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 };
 
 // ─── Sidebar Component ───────────────────────────────────────────────────────
@@ -280,113 +455,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
   const [modalMode, setModalMode] = useState<'folder' | 'card' | 'timeline' | null>(null);
   const [targetFolderId, setTargetFolderId] = useState<string | null>(null);
-  const [formInput, setFormInput] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Close creation modal on Escape key press
-  React.useEffect(() => {
-    if (!modalMode) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setModalMode(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [modalMode]);
-
-  const handleOpenFolderModal = () => {
-    setFormInput('');
+  const handleOpenFolderModal = useCallback(() => {
+    setTargetFolderId(null);
     setModalMode('folder');
-  };
+  }, []);
 
-  const handleOpenCardModal = (folderId?: string) => {
-    setFormInput('');
+  const handleOpenCardModal = useCallback((folderId?: string) => {
     setTargetFolderId(folderId ?? null);
     setModalMode('card');
-  };
+  }, []);
 
-  const handleOpenTimelineModal = (folderId?: string) => {
-    setFormInput('');
+  const handleOpenTimelineModal = useCallback((folderId?: string) => {
     setTargetFolderId(folderId ?? null);
     setModalMode('timeline');
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const value = formInput.trim();
-    if (!value || !worldId || !token || isSubmitting) return;
+  const handleCloseModal = useCallback(() => {
+    setModalMode(null);
+    setTargetFolderId(null);
+  }, []);
 
-    setIsSubmitting(true);
-    try {
-      if (modalMode === 'folder') {
-        await apiFetch(`/worlds/${worldId}/folders`, token, {
-          method: 'POST',
-          body: JSON.stringify({ name: value }),
-        });
-      } else if (modalMode === 'timeline') {
-        const payload: { name: string; folderId?: string } = {
-          name: value,
-        };
-        if (targetFolderId) {
-          payload.folderId = targetFolderId;
-        }
-
-        const newTimeline = await apiFetch<{ id: string }>(
-          `/worlds/${worldId}/timelines`,
-          token,
-          {
-            method: 'POST',
-            body: JSON.stringify(payload),
-          },
-        );
-
-        if (newTimeline?.id) {
-          onTimelineSelect?.(newTimeline.id);
-        }
-      } else if (modalMode === 'card') {
-        const types = await apiFetch<Array<{ id: string }>>(
-          `/worlds/${worldId}/card-types`,
-          token,
-        );
-        const cardTypeId = types[0]?.id;
-        if (!cardTypeId) {
-          window.alert('Nenhum tipo de card encontrado neste mundo.');
-          return;
-        }
-
-        const payload: { title: string; cardTypeId: string; folderId?: string } = {
-          title: value,
-          cardTypeId,
-        };
-        if (targetFolderId) {
-          payload.folderId = targetFolderId;
-        }
-
-        const newCard = await apiFetch<{ id: string; documentId: string }>(
-          `/worlds/${worldId}/cards`,
-          token,
-          {
-            method: 'POST',
-            body: JSON.stringify(payload),
-          },
-        );
-
-        if (newCard?.id && newCard?.documentId) {
-          onCardSelect(newCard.id, newCard.documentId);
-        }
-      }
-
+  const handleModalSuccess = useCallback(
+    (type: 'folder' | 'card' | 'timeline', id?: string, docId?: string) => {
       mutate();
       setModalMode(null);
-      setFormInput('');
       setTargetFolderId(null);
-    } catch (err) {
-      console.error('Falha na operação:', err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
+      if (type === 'timeline' && id && onTimelineSelect) {
+        onTimelineSelect(id);
+      } else if (type === 'card' && id && docId) {
+        onCardSelect(id, docId);
+      }
+    },
+    [mutate, onTimelineSelect, onCardSelect],
+  );
 
   const isEmpty =
     !isLoading &&
@@ -453,7 +556,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={() => handleOpenCardModal()}
-              className="mt-3.5 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/25 hover:bg-indigo-500/20 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+              className="mt-3.5 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/[0.04] text-zinc-200 border border-white/[0.08] hover:bg-white/[0.08] hover:text-white text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
             >
               <IconPlus size={12} />
               <span>Criar Primeiro Card</span>
@@ -496,86 +599,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </div>
 
-      {/* ── Modal de Criação (Pasta, Card ou Linha do Tempo) ─────────────── */}
-      {modalMode && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="sidebar-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
-          onClick={() => setModalMode(null)}
-        >
-          <div
-            className="w-full max-w-sm rounded-xl bg-[#111115] border border-white/10 p-5 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 id="sidebar-modal-title" className="text-sm font-semibold text-zinc-100">
-                {modalMode === 'folder'
-                  ? 'Criar Nova Pasta'
-                  : modalMode === 'timeline'
-                    ? 'Criar Nova Linha do Tempo'
-                    : 'Criar Novo Card'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setModalMode(null)}
-                aria-label="Fechar modal"
-                className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
-              >
-                <IconX size={14} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-              <div>
-                <label
-                  htmlFor="sidebar-creation-input"
-                  className="block text-xs text-zinc-400 mb-1.5 font-medium"
-                >
-                  {modalMode === 'folder'
-                    ? 'Nome da Pasta'
-                    : modalMode === 'timeline'
-                      ? 'Nome da Linha do Tempo'
-                      : 'Título do Card'}
-                </label>
-                <input
-                  id="sidebar-creation-input"
-                  type="text"
-                  autoFocus
-                  required
-                  value={formInput}
-                  onChange={(e) => setFormInput(e.target.value)}
-                  placeholder={
-                    modalMode === 'folder'
-                      ? 'ex: Facções, Geografia, Magia…'
-                      : modalMode === 'timeline'
-                        ? 'ex: História Antiga, Guerra dos Cem Anos…'
-                        : 'ex: A Ordem dos Nove, Cidade de Arkhan…'
-                  }
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-[#09090b] border border-white/10 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/40"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setModalMode(null)}
-                  className="px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={!formInput.trim() || isSubmitting}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
-                >
-                  {isSubmitting ? 'Criando…' : 'Criar'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Creation Modal rendered conditionally */}
+      {modalMode && worldId && token && (
+        <SidebarCreationModal
+          mode={modalMode}
+          targetFolderId={targetFolderId}
+          worldId={worldId}
+          token={token}
+          onClose={handleCloseModal}
+          onSuccess={handleModalSuccess}
+        />
       )}
     </div>
   );

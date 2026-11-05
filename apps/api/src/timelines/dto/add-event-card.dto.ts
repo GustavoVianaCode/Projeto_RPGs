@@ -9,3 +9,4 @@ export class AddEventCardDto {
   @IsString()
   role?: string;
 }
+

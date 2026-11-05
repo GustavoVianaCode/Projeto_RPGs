@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { WorldEditor } from './components/WorldEditor';
 import { Sidebar } from './components/Sidebar';
 import { CmdkSearch } from './components/CmdkSearch';
@@ -56,8 +56,14 @@ export const App: React.FC = () => {
   const [activeTimelineId, setActiveTimelineId] = useState<string | null>(null);
   const [editorKey, setEditorKey] = useState<number>(0);
 
+  // Prevent duplicate concurrent requests in React StrictMode
+  const fetchSessionInFlightRef = useRef(false);
+
   // Fetch development bootstrap session
-  const fetchSession = async () => {
+  const fetchSession = useCallback(async () => {
+    if (fetchSessionInFlightRef.current) return;
+    fetchSessionInFlightRef.current = true;
+
     setLoading(true);
     setError(null);
     try {
@@ -71,40 +77,62 @@ export const App: React.FC = () => {
       const message = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(`${message} — verifique se a API está rodando na porta 4000.`);
     } finally {
+      fetchSessionInFlightRef.current = false;
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSession();
+  }, [fetchSession]);
+
+  // Window resize handler: auto-adjust sidebar when transitioning between desktop and mobile
+  useEffect(() => {
+    let lastWidth = window.innerWidth;
+    const handleResize = () => {
+      const currentWidth = window.innerWidth;
+      const wasDesktop = lastWidth >= 768;
+      const isDesktop = currentWidth >= 768;
+      if (!wasDesktop && isDesktop) {
+        // Opened up to desktop: restore visible sidebar
+        setSidebarOpen(true);
+      } else if (wasDesktop && !isDesktop) {
+        // Shrunk to mobile: close drawer by default so it doesn't obstruct canvas
+        setSidebarOpen(false);
+      }
+      lastWidth = currentWidth;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Fetch world and cards information for navigation context
   const { data: worldData } = useWorld(session?.worldId ?? null, session?.token ?? null);
   const { data: cardsData } = useCards(session?.worldId ?? null, session?.token ?? null);
 
-  const handleCardSelect = (cardId: string, documentId: string) => {
+  const handleCardSelect = useCallback((cardId: string, documentId: string) => {
     setActiveCard({ cardId, documentId });
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       setSidebarOpen(false);
     }
-  };
+  }, []);
 
-  const handleTimelineSelect = (timelineId: string) => {
+  const handleTimelineSelect = useCallback((timelineId: string) => {
     setActiveTimelineId(timelineId);
     setActiveTab('timelines');
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       setSidebarOpen(false);
     }
-  };
+  }, []);
 
-  const handleNavigateToCardFromView = (cardId: string, documentId: string) => {
+  const handleNavigateToCardFromView = useCallback((cardId: string, documentId: string) => {
     setActiveCard({ cardId, documentId });
     setActiveTab('lore');
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       setSidebarOpen(false);
     }
-  };
+  }, []);
 
   // Resolve current active card ID and document ID
   const effectiveCardId = activeCard?.cardId ?? session?.cardId ?? '';
@@ -141,7 +169,7 @@ export const App: React.FC = () => {
   }, [cardsData]);
 
   // Handle clicking a mention tag in the editor to navigate to that card
-  const handleMentionClick = (targetCardId: string) => {
+  const handleMentionClick = useCallback((targetCardId: string) => {
     const found = cardsData?.find((c) => c.id === targetCardId);
     if (found) {
       setActiveCard({ cardId: found.id, documentId: found.documentId });
@@ -150,7 +178,7 @@ export const App: React.FC = () => {
         setSidebarOpen(false);
       }
     }
-  };
+  }, [cardsData]);
 
   // User initials for monogram
   const userInitials = useMemo(() => {
@@ -170,7 +198,7 @@ export const App: React.FC = () => {
         <div
           role="presentation"
           aria-hidden="true"
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden transition-opacity duration-200"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 md:hidden transition-opacity duration-200"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -224,7 +252,7 @@ export const App: React.FC = () => {
               <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-500 leading-none">
                 Mundo Ativo
               </span>
-              <span className="text-xs font-medium text-zinc-200 truncate mt-0.5">
+              <span className="text-xs font-medium text-zinc-200 truncate mt-0.5 font-sans">
                 {worldTitle}
               </span>
             </div>
@@ -237,7 +265,7 @@ export const App: React.FC = () => {
           {/* Global Search trigger (Ctrl+K) */}
           <button
             type="button"
-            className="group flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] hover:text-zinc-200 hover:border-white/[0.08] transition-colors duration-140 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+            className="group flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.05] hover:text-zinc-200 hover:border-white/[0.08] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
             onClick={() =>
               document.dispatchEvent(
                 new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
@@ -368,7 +396,7 @@ export const App: React.FC = () => {
                   <span className="text-zinc-600">/</span>
                 </>
               )}
-              <span className="text-indigo-300 font-medium truncate max-w-[180px] sm:max-w-xs">
+              <span className="text-indigo-300 font-medium truncate max-w-[180px] sm:max-w-xs font-sans">
                 {cardTitle}
               </span>
             </nav>
