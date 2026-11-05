@@ -31,6 +31,7 @@ Inspirado na sofisticação e no acabamento visual da [vvd.world](https://vvd.wo
 
 | Camada | Tecnologias Utilizadas |
 | :--- | :--- |
+| **Desktop Shell** | [Electron 33](https://www.electronjs.org/) + [electron-builder](https://www.electron.build/) (Windows NSIS & Portable, ciclo de vida local) |
 | **Monorepo** | [Turborepo 2](https://turbo.build/) + [pnpm Workspaces 10](https://pnpm.io/) |
 | **Backend API** | [NestJS 10](https://nestjs.com/) (TypeScript Strict, Fastify/Express, BullMQ) |
 | **Colaboração em Tempo Real** | [Hocuspocus Server](https://tiptap.dev/docs/hocuspocus) + [Yjs](https://yjs.dev/) (CRDTs com WebSockets) |
@@ -351,6 +352,13 @@ Todas as rotas de mundo exigem autenticação via Bearer JWT e validam o papel d
 ```text
 Projeto_RPGs/
 ├── apps/
+│   ├── desktop/                      # Invólucro desktop local-first (Electron 33 + electron-builder)
+│   │   ├── src/
+│   │   │   ├── main.ts               # Processo principal, gerenciamento de janelas e ciclo de vida
+│   │   │   ├── preload.ts            # ContextBridge seguro para renderer (window.desktopBridge)
+│   │   │   ├── service-manager.ts    # Orquestrador do serviço local em segundo plano
+│   │   │   └── types.ts              # Tipagens da ponte desktop
+│   │   └── out/win-unpacked/         # Executável Windows (WorldArchitect.exe)
 │   ├── api/                          # Backend REST + Hocuspocus Server (NestJS 10)
 │   │   ├── src/
 │   │   │   ├── auth/                 # Autenticação JWT, guards e refresh tokens em SHA-256
@@ -392,6 +400,10 @@ Projeto_RPGs/
 
 | Comando | Descrição |
 | :--- | :--- |
+| `pnpm desktop:dev` | Inicia o aplicativo desktop Electron em modo de desenvolvimento |
+| `pnpm desktop:build` | Compila o processo principal e preload do desktop (`tsc`) |
+| `pnpm desktop:pack` | Monta a pasta do executável Windows descompactado em `out/win-unpacked` |
+| `pnpm desktop:dist` | Gera o instalador executável Windows NSIS e Portable (`.exe`) via electron-builder |
 | `pnpm dev` | Inicia Frontend, API REST e Hocuspocus em modo watch com hot-reload |
 | `pnpm build` | Compila todos os pacotes e aplicações via Turborepo (`turbo run build`) |
 | `pnpm lint` | Executa verificação estrita de tipos TypeScript sem emitir arquivos (`tsc --noEmit`) |

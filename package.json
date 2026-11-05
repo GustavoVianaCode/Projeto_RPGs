@@ -11,7 +11,12 @@
     "db:generate": "pnpm --filter @proj/database db:generate",
     "db:studio": "pnpm --filter @proj/database db:studio",
     "db:backup": "powershell -ExecutionPolicy Bypass -File ./scripts/backup.ps1",
-    "db:restore": "powershell -ExecutionPolicy Bypass -File ./scripts/restore.ps1"
+    "db:restore": "powershell -ExecutionPolicy Bypass -File ./scripts/restore.ps1",
+    "desktop:dev": "pnpm --filter @proj/desktop dev",
+    "desktop:build": "pnpm --filter @proj/desktop build",
+    "desktop:pack": "pnpm --filter @proj/desktop pack",
+    "desktop:dist": "pnpm --filter @proj/desktop dist",
+    "desktop:dist:portable": "pnpm --filter @proj/desktop dist:portable"
   },
   "devDependencies": {
     "prettier": "^3.5.1",

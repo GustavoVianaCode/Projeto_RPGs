@@ -19,6 +19,7 @@ import {
   IconClock,
   IconLink,
   IconHistory,
+  IconFolder,
 } from './components/icons';
 
 interface DevSession {
@@ -403,6 +404,18 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {typeof window !== 'undefined' && window.desktopBridge?.isDesktop && (
+              <button
+                type="button"
+                title="Abrir pasta local de dados do aplicativo"
+                onClick={() => window.desktopBridge?.openDataFolder()}
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-zinc-300 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+              >
+                <IconFolder size={13} className="text-zinc-400" />
+                <span>Dados Locais</span>
+              </button>
+            )}
+
             {/* Global Search Button */}
             <button
               type="button"
@@ -515,10 +528,16 @@ export const App: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xs font-semibold text-rose-300">
-                    Não foi possível conectar ao servidor
+                    Não foi possível conectar ao serviço local
                   </h3>
                   <p className="text-xs text-rose-400/80 mt-1 leading-relaxed">{error}</p>
-                  <div className="mt-3.5 flex items-center gap-2">
+                  {typeof window !== 'undefined' && window.desktopBridge?.isDesktop && (
+                    <div className="mt-2 text-[11px] text-zinc-400 bg-black/40 p-2.5 rounded border border-white/[0.04] leading-relaxed">
+                      💡 <strong>Fase 2 (Shell Desktop):</strong> A persistência local embutida (Zero-Docker) será introduzida na Fase 3 com SQLite.
+                      Nesta etapa, o backend NestJS requer que o <strong>PostgreSQL (porta 5432)</strong> e o <strong>Redis (porta 6379)</strong> estejam em execução.
+                    </div>
+                  )}
+                  <div className="mt-3.5 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={fetchSession}
@@ -526,6 +545,28 @@ export const App: React.FC = () => {
                     >
                       Tentar Novamente
                     </button>
+                    {typeof window !== 'undefined' && window.desktopBridge?.isDesktop && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setLoading(true);
+                            await window.desktopBridge?.restartService();
+                            setTimeout(() => fetchSession(), 1500);
+                          }}
+                          className="px-3 py-1.5 rounded-md text-xs font-medium bg-indigo-500/15 text-indigo-200 border border-indigo-500/30 hover:bg-indigo-500/25 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+                        >
+                          Reiniciar Serviço Local
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => window.desktopBridge?.openDataFolder()}
+                          className="px-3 py-1.5 rounded-md text-xs font-medium bg-white/[0.05] text-zinc-300 border border-white/[0.1] hover:bg-white/[0.1] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
+                        >
+                          Abrir Pasta de Dados
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

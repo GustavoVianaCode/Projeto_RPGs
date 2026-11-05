@@ -12,6 +12,8 @@ dist/
 build/
 .next/
 out/
+release/
+apps/desktop/renderer/
 
 # Environment
 .env

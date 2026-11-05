@@ -11,9 +11,11 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { SearchModule } from './search/search.module';
 import { TimelinesModule } from './timelines/timelines.module';
 import { VersionsModule } from './versions/versions.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
+    HealthModule,
     PrismaModule,
     BullModule.forRoot({
       connection: {

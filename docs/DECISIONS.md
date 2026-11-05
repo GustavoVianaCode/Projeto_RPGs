@@ -17,10 +17,11 @@ Este documento consolida as decisões tomadas para a plataforma de worldbuilding
    - O payload do Redis não deve receber `contentJson`.
    - O `jobId` não deve ser estático a ponto de descartar jobs necessários (utilizar debounce por delay dinâmico ou rate-limit).
 
-2. **Workspace Privado & Roadmap (Sem Wiki Pública e Sem Mapas/Zonas):**
-   - O projeto é focado 100% em ser um workspace privado para worldbuilding e anotações.
-   - Foram descontinuados do roadmap: "Wiki Pública" e "Mapas e Zonas".
-   - Roadmap prioritário: Linhas do Tempo (Concluído) -> Grafos/Árvores -> Dicionários/Exportação.
+2. **Transição Desktop Local-First & Reorientação de Escopo:**
+   - O produto evolui para um aplicativo desktop instalável (`WorldArchitect`), priorizando uso local-first, soberania de dados e ausência de cotas arbitrárias por usuário ou mundo.
+   - **Revisão de Escopo:** **Mapas/Zonas** e **Wiki Privada/Local** são reincorporados ao roadmap do produto para visualização offline de lore e atlas. Permanece expressamente proibida a publicação pública aberta na web sem autorização específica.
+   - **Arquitetura Desktop:** Adoção do Electron para empacotamento desktop nativo (compatível com a stack Node.js/TypeScript e sem exigência de toolchain Rust local), com orquestração automática do ciclo de vida de serviços locais via `ServiceManager`.
+   - **Formato de Portabilidade:** Padronização do formato `.worldpack` (ZIP versionado com `manifest.json`, checksums SHA-256 de integridade e importação transacional atômica) independente de cópias manuais de bancos de dados.
 
 3. **Autenticação Segura:**
    - `refreshToken` guardado apenas como hash SHA-256 e rotacionado a cada novo refresh.

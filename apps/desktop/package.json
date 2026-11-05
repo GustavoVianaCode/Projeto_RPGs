@@ -1,0 +1,63 @@
+{
+  "name": "@proj/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WorldArchitect - Local-First Worldbuilding Desktop Platform",
+  "author": "WorldArchitect Team",
+  "main": "dist/main.js",
+  "scripts": {
+    "build:ts": "tsc",
+    "build": "tsc && node scripts/copy-renderer.js",
+    "lint": "tsc --noEmit",
+    "dev": "tsc && electron .",
+    "pack": "tsc && electron-builder --dir",
+    "dist": "tsc && electron-builder --win",
+    "dist:portable": "tsc && electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.worldarchitect.app",
+    "productName": "WorldArchitect",
+    "directories": {
+      "output": "out"
+    },
+    "files": [
+      "dist/**/*",
+      "renderer/**/*"
+    ],
+    "extraMetadata": {
+      "main": "dist/main.js"
+    },
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "uninstallDisplayName": "WorldArchitect Worldbuilding Platform",
+      "deleteAppDataOnUninstall": false
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.3"
+  }
+}
